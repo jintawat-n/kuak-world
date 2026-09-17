@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>OpenWorld · Pixel Life Online</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%2378c850'/><rect x='5' y='3' width='6' height='5' fill='%233f8f3a'/><rect x='7' y='8' width='2' height='5' fill='%237a4a22'/></svg>">
+</head>
+<body>
+
+<!-- ================= AUTH ================= -->
+<div id="auth" class="screen">
+  <div class="auth-bg"><canvas id="authbg"></canvas></div>
+  <div class="auth-card panel">
+    <div class="logo">
+      <div class="logo-title">OpenWorld</div>
+      <div class="logo-sub">Pixel Life Online · สร้างบ้าน ปลูกผัก หาเพื่อน</div>
+    </div>
+    <div class="tabs">
+      <button class="tab active" data-tab="login">เข้าสู่ระบบ</button>
+      <button class="tab" data-tab="register">สมัครสมาชิก</button>
+    </div>
+    <form id="authForm" autocomplete="on">
+      <label>ชื่อผู้ใช้ <input id="authUser" maxlength="16" autocomplete="username" placeholder="a-z 0-9 _ (3-16 ตัว)" required></label>
+      <label>รหัสผ่าน <input id="authPass" type="password" minlength="4" autocomplete="current-password" placeholder="อย่างน้อย 4 ตัว" required></label>
+      <div id="authErr" class="err"></div>
+      <button class="btn primary big" id="authBtn" type="submit">เข้าสู่ระบบ</button>
+    </form>
+    <div class="auth-stats" id="authStats"></div>
+  </div>
+</div>
+
+<!-- ================= CHARACTER CREATOR ================= -->
+<div id="creator" class="screen hidden">
+  <div class="creator-card panel">
+    <h2 id="creatorTitle">สร้างตัวละครของคุณ</h2>
+    <div class="creator-body">
+      <div class="creator-preview">
+        <canvas id="preview" width="160" height="240"></canvas>
+        <div class="row center gap">
+          <button class="btn small" id="prevRotate">↻ หมุน</button>
+          <button class="btn small" id="prevRandom">🎲 สุ่ม</button>
+        </div>
+      </div>
+      <div class="creator-opts">
+        <label>ชื่อในเกม <input id="charName" maxlength="16" placeholder="ชื่อที่คนอื่นเห็น"></label>
+        <div class="opt" data-k="skin"><span>สีผิว</span><div class="swatches"></div></div>
+        <div class="opt" data-k="hairStyle"><span>ทรงผม</span><div class="chips"></div></div>
+        <div class="opt" data-k="hair"><span>สีผม</span><div class="swatches"></div></div>
+        <div class="opt" data-k="eyes"><span>สีตา</span><div class="swatches"></div></div>
+        <div class="opt" data-k="shirt"><span>เสื้อ</span><div class="swatches"></div></div>
+        <div class="opt" data-k="pants"><span>กางเกง</span><div class="swatches"></div></div>
+        <div class="opt" data-k="hat"><span>หมวก</span><div class="chips"></div></div>
+      </div>
+    </div>
+    <div class="row right gap">
+      <button class="btn" id="creatorCancel" style="display:none">ยกเลิก</button>
+      <button class="btn primary big" id="creatorDone">เริ่มผจญภัย!</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= GAME ================= -->
+<div id="game" class="screen hidden">
+  <canvas id="canvas"></canvas>
+
+  <!-- HUD top-left: needs -->
+  <div id="hudNeeds" class="hud panel">
+    <div class="needs">
+      <div class="need" data-n="hunger"><span class="ic">🍞</span><div class="bar"><i></i></div></div>
+      <div class="need" data-n="energy"><span class="ic">⚡</span><div class="bar"><i></i></div></div>
+      <div class="need" data-n="fun"><span class="ic">🎉</span><div class="bar"><i></i></div></div>
+      <div class="need" data-n="hygiene"><span class="ic">🛁</span><div class="bar"><i></i></div></div>
+    </div>
+    <div class="coins">🪙 <b id="coins">0</b></div>
+    <div class="lvl" id="lvlBox" title="คลิกเพื่อดูยุคและการปลดล็อก"><b id="lvl">Lv 1</b> <span id="era">🪨 ยุคหิน</span><div class="bar xp"><i id="xpBar"></i></div><span class="muted" id="xpText"></span></div>
+    <div id="vehicleTag" class="hidden"></div>
+  </div>
+
+  <!-- HUD top-right: clock, minimap -->
+  <div id="hudRight">
+    <div class="panel clock"><span id="clockIcon">☀️</span> <b id="clock">08:00</b> <span class="muted" id="online">· 1 ออนไลน์</span></div>
+    <canvas id="minimap" width="160" height="160" class="panel"></canvas>
+    <div class="hud-btns">
+      <button class="hbtn" id="btnEra" title="ยุคและการปลดล็อก (L)">📜</button>
+      <button class="hbtn" id="btnMap" title="แผนที่ (M)">🗺️</button>
+      <button class="hbtn" id="btnFriends" title="เพื่อน (F)">👥<span class="badge hidden" id="badgeFriends"></span></button>
+      <button class="hbtn" id="btnMenu" title="เมนู (Esc)">⚙️</button>
+    </div>
+  </div>
+
+  <!-- toasts -->
+  <div id="toasts"></div>
+
+  <!-- bottom-center: hotbar -->
+  <div id="hudBottom">
+    <div id="hotbarName" class="muted"></div>
+    <div id="hotbar"></div>
+    <div class="hud-btns">
+      <button class="hbtn" id="btnInv" title="กระเป๋า (I)">🎒</button>
+      <button class="hbtn" id="btnCraft" title="คราฟต์ (C)">🔨</button>
+      <button class="hbtn" id="btnShop" title="ร้านค้า (B)">🏪</button>
+      <button class="hbtn" id="btnHome" title="กลับบ้าน (H)">🏠</button>
+    </div>
+  </div>
+
+  <!-- bottom-left: world chat -->
+  <div id="worldChat" class="panel">
+    <div class="wc-head">
+      <button class="wtab active" data-scope="local">📍 ใกล้ตัว</button>
+      <button class="wtab" data-scope="global">🌍 ทั่วโลก</button>
+      <button class="wc-toggle" id="wcToggle">▾</button>
+    </div>
+    <div class="wc-body">
+      <div id="wcMsgs" class="wc-msgs"></div>
+      <form id="wcForm"><input id="wcInput" maxlength="300" placeholder="พิมพ์แล้วกด Enter (Enter เพื่อเริ่มพิมพ์)" autocomplete="off"><button type="submit" class="btn small">ส่ง</button></form>
+    </div>
+  </div>
+
+  <!-- bottom-right: messenger dock -->
+  <div id="dock">
+    <div id="chatWindows"></div>
+    <div id="dockBar">
+      <button id="dockBtn">💬 แชต <span class="badge hidden" id="badgeDm"></span></button>
+      <div id="dockList" class="hidden">
+        <div class="dock-head">เพื่อน <span class="muted" id="dockOnline"></span></div>
+        <div id="dockFriends"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- touch controls -->
+  <div id="joy" class="touch"><div id="joyKnob"></div></div>
+  <button id="btnAct" class="touch">✋</button>
+
+  <!-- ===== panels ===== -->
+  <div id="modal" class="hidden">
+    <div id="pInv" class="panel modal-panel hidden">
+      <div class="ph"><h3>🎒 กระเป๋า</h3><button class="x" data-close>✕</button></div>
+      <div class="tabs small" id="invTabs">
+        <button class="tab active" data-cat="all">ทั้งหมด</button><button class="tab" data-cat="tool">เครื่องมือ</button><button class="tab" data-cat="mat">วัตถุดิบ</button><button class="tab" data-cat="food">อาหาร</button><button class="tab" data-cat="seed">เมล็ด</button><button class="tab" data-cat="build">ก่อสร้าง</button><button class="tab" data-cat="furn">เฟอร์นิเจอร์</button><button class="tab" data-cat="vehicle">พาหนะ</button>
+      </div>
+      <div class="hint">คลิกไอเทมเพื่อใส่ช่องด่วนที่เลือกอยู่ · คลิกขวาอาหารเพื่อกิน</div>
+      <div id="invGrid" class="grid"></div>
+    </div>
+
+    <div id="pCraft" class="panel modal-panel hidden">
+      <div class="ph"><h3>🔨 คราฟต์</h3><button class="x" data-close>✕</button></div>
+      <div class="tabs small" id="craftTabs"><button class="tab active" data-cat="all">ทั้งหมด</button><button class="tab" data-cat="tool">เครื่องมือ</button><button class="tab" data-cat="build">ก่อสร้าง</button><button class="tab" data-cat="furn">เฟอร์นิเจอร์</button><button class="tab" data-cat="vehicle">พาหนะ</button></div>
+      <div class="hint" id="craftHint"></div>
+      <div id="craftList" class="list"></div>
+    </div>
+
+    <div id="pCook" class="panel modal-panel hidden">
+      <div class="ph"><h3>🍳 ทำอาหาร</h3><button class="x" data-close>✕</button></div>
+      <div class="hint">ต้องอยู่ใกล้เตาหรือกองไฟ · อาหารปรุงสุกฟื้นฟูมากกว่าและขายได้ราคาดี</div>
+      <div id="cookList" class="list"></div>
+    </div>
+
+    <div id="pShop" class="panel modal-panel hidden">
+      <div class="ph"><h3>🏪 ร้านค้า <span class="muted" id="shopCoins"></span></h3><button class="x" data-close>✕</button></div>
+      <div class="tabs small" id="shopTabs"><button class="tab active" data-mode="buy">ซื้อ</button><button class="tab" data-mode="sell">ขาย</button></div>
+      <div id="shopList" class="list"></div>
+    </div>
+
+    <div id="pFriends" class="panel modal-panel hidden">
+      <div class="ph"><h3>👥 เพื่อน</h3><button class="x" data-close>✕</button></div>
+      <form id="friendSearch" class="row gap"><input id="friendQ" placeholder="ค้นหาชื่อผู้ใช้เพื่อเพิ่มเพื่อน" maxlength="16"><button class="btn small" type="submit">ค้นหา</button></form>
+      <div id="friendResults"></div>
+      <div id="friendReqs"></div>
+      <h4>รายชื่อเพื่อน</h4>
+      <div id="friendList"></div>
+    </div>
+
+    <div id="pMap" class="panel modal-panel hidden">
+      <div class="ph"><h3>🗺️ แผนที่โลก</h3><button class="x" data-close>✕</button></div>
+      <canvas id="bigmap" width="512" height="512"></canvas>
+      <div class="hint">⬤ คุณ · 🏠 บ้าน · ★ เมือง · ● เพื่อน</div>
+    </div>
+
+    <div id="pMenu" class="panel modal-panel hidden">
+      <div class="ph"><h3>⚙️ เมนู</h3><button class="x" data-close>✕</button></div>
+      <div class="menu-list">
+        <button class="btn" id="mSetHome">🏠 ตั้งจุดนี้เป็นบ้าน</button>
+        <button class="btn" id="mHome">🏃 กลับบ้าน</button>
+        <button class="btn" id="mTown">🏙️ ไปเมือง</button>
+        <button class="btn" id="mLook">🧑‍🎨 เปลี่ยนหน้าตา</button>
+        <div class="row gap"><button class="btn" id="mZoomOut">🔍−</button><button class="btn" id="mZoomIn">🔍+</button></div>
+        <button class="btn" id="mHelp">❓ วิธีเล่น</button>
+        <button class="btn danger" id="mLogout">ออกจากระบบ</button>
+      </div>
+    </div>
+
+    <div id="pEra" class="panel modal-panel hidden">
+      <div class="ph"><h3>📜 ยุคสมัยและการปลดล็อก</h3><button class="x" data-close>✕</button></div>
+      <div class="hint">ได้ XP จากตัดไม้ ขุดหิน เก็บของป่า ปลูก/รดน้ำ/เก็บเกี่ยว คราฟต์ ทำอาหาร สร้างสิ่งของ และขายของ · เลเวลอัปได้โบนัสเหรียญ</div>
+      <div id="eraList"></div>
+    </div>
+
+    <div id="pHelp" class="panel modal-panel hidden">
+      <div class="ph"><h3>❓ วิธีเล่น</h3><button class="x" data-close>✕</button></div>
+      <div class="help">
+        <p><b>เดิน</b> WASD / ลูกศร · <b>วิ่ง</b> Shift · <b>ใช้ไอเทมที่เลือก</b> คลิกซ้ายบนช่อง หรือ Space (ช่องข้างหน้า)</p>
+        <p><b>ใช้มือเปล่า/โต้ตอบ</b> คลิกขวา หรือ E · <b>เลือกช่องด่วน</b> 1-8 หรือล้อเมาส์</p>
+        <p><b>เก็บทรัพยากร</b> ขวาน→ต้นไม้ · อีเต้อ→หิน · มือ→พุ่มเบอร์รี่/ดอกไม้/เห็ด</p>
+        <p><b>ปลูกผัก</b> จอบพรวนดิน → เลือกเมล็ดแล้วคลิก → บัวรดน้ำ (โตเร็ว 2 เท่า) → โตเต็มที่แล้วคลิกเก็บเกี่ยว</p>
+        <p><b>สร้างบ้าน</b> คราฟต์ผนัง/พื้น/ประตู/เฟอร์นิเจอร์ (C) แล้วเลือกวางบนพื้น · ค้อนใช้รื้อของที่เราวาง</p>
+        <p><b>ชีวิตแบบ Sims</b> นอนบนเตียง (พลังงาน+ตั้งเป็นบ้าน) · เก้าอี้/ทีวี/หนังสือ (สนุก) · อ่างอาบน้ำ (สะอาด) · เตา (ทำอาหาร)</p>
+        <p><b>เพื่อน</b> F ค้นหาชื่อผู้ใช้ → ส่งคำขอ → แชตส่วนตัว / วาร์ปไปหา · <b>แชตใกล้ตัว</b> Enter</p>
+        <p><b>เลเวลและยุค</b> ทำกิจกรรมได้ XP → เลเวลอัป → ปลดล็อกสูตรคราฟต์และของในร้าน ตั้งแต่ยุคหินจนถึงยุคปัจจุบัน (ดูที่ 📜)</p>
+        <p><b>ยานพาหนะ</b> คราฟต์/ซื้อแล้วกด "ขี่" ในกระเป๋า · แพ/เรือใช้ในน้ำ (ขึ้นจากชายหาด) · ม้า จักรยาน มอเตอร์ไซค์ รถยนต์ ใช้บนบก · เฮลิคอปเตอร์บินข้ามทุกอย่าง · กด V เพื่อลง</p>
+        <p><b>ปุ่มลัด</b> I กระเป๋า · C คราฟต์ · B ร้านค้า · M แผนที่ · L ยุค · H กลับบ้าน · V ลงจากพาหนะ · Esc เมนู</p>
+      </div>
+    </div>
+
+    <div id="pSign" class="panel modal-panel hidden">
+      <div class="ph"><h3>🪧 ป้าย</h3><button class="x" data-close>✕</button></div>
+      <div id="signText" class="sign-text"></div>
+      <div id="signEdit" class="hidden"><textarea id="signInput" maxlength="120" rows="3"></textarea><button class="btn primary" id="signSave">บันทึก</button></div>
+    </div>
+  </div>
+</div>
+
+<script src="js/defs.js"></script>
+<script src="js/sprites.js"></script>
+<script src="js/net.js"></script>
+<script src="js/game.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

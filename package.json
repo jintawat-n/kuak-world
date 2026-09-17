@@ -1,0 +1,11 @@
+{
+  "name": "openworld",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Open world pixel life game - Sims x Stardew x Minecraft (online)",
+  "scripts": { "start": "node server/index.js" },
+  "dependencies": {
+    "express": "^5.1.0",
+    "ws": "^8.18.0"
+  }
+}
