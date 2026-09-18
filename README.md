@@ -1,4 +1,4 @@
-# OpenWorld · Pixel Life Online
+# Kuak World · Pixel Life Online
 
 เกม open world 2D pixel แนว **The Sims × Stardew Valley × Minecraft** เล่นออนไลน์หลายคนในแผนที่เดียวกัน
 (ไม่ใช้ asset ภายนอก กราฟิกทั้งหมดวาดด้วยโค้ด)
@@ -6,7 +6,7 @@
 ## รัน
 
 ```bash
-./start-openworld.command        # ติดตั้ง dependency ครั้งแรกให้เอง แล้วเปิด http://localhost:4488
+./start-kuak-world.command        # ติดตั้ง dependency ครั้งแรกให้เอง แล้วเปิด http://localhost:4488
 ```
 
 หรือ `PORT=4488 node server/index.js`

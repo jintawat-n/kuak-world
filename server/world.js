@@ -143,7 +143,7 @@ function generateChunk(cx, cy) {
     const x = D.SPAWN.x + dx, y = D.SPAWN.y + dy;
     if (x >= bx && x < bx + CHUNK && y >= by && y < by + CHUNK) {
       const o = { t, town: 1 };
-      if (t === 'sign') o.txt = 'ยินดีต้อนรับสู่ OpenWorld! เดินสำรวจ เก็บไม้ สร้างบ้าน ปลูกผัก และหาเพื่อนใหม่';
+      if (t === 'sign') o.txt = 'ยินดีต้อนรับสู่ Kuak World! เดินสำรวจ เก็บไม้ สร้างบ้าน ปลูกผัก และหาเพื่อนใหม่';
       objs[(x - bx) + ',' + (y - by)] = o;
     }
   }

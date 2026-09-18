@@ -1,5 +1,5 @@
 /* ==========================================================
-   OpenWorld - shared definitions (server + browser)
+   Kuak World - shared definitions (server + browser)
    ========================================================== */
 (function (root) {
   const D = {};

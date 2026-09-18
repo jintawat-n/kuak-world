@@ -1,4 +1,4 @@
-/* OpenWorld server: HTTP (auth + static) and WebSocket game server */
+/* Kuak World server: HTTP (auth + static) and WebSocket game server */
 const path = require('path');
 const http = require('http');
 const crypto = require('crypto');
@@ -712,4 +712,4 @@ function shutdown() {
 }
 process.on('SIGINT', shutdown); process.on('SIGTERM', shutdown);
 
-server.listen(PORT, () => console.log(`OpenWorld server → http://localhost:${PORT}  (seed ${db.world.seed})`));
+server.listen(PORT, () => console.log(`Kuak World server → http://localhost:${PORT}  (seed ${db.world.seed})`));
