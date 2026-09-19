@@ -96,12 +96,18 @@
   <!-- bottom-center: hotbar -->
   <div id="hudBottom">
     <div id="hotbarName" class="muted"></div>
-    <div id="hotbar"></div>
-    <div class="hud-btns">
-      <button class="hbtn" id="btnInv" title="กระเป๋า (I)">🎒</button>
-      <button class="hbtn" id="btnCraft" title="คราฟต์ (C)">🔨</button>
-      <button class="hbtn" id="btnShop" title="ร้านค้า (B)">🏪</button>
-      <button class="hbtn" id="btnHome" title="กลับบ้าน (H)">🏠</button>
+    <div id="hotbar">
+      <div id="hbZones"></div>
+      <div class="zdiv"></div>
+      <div class="zone menu">
+        <div class="zl">📋 เมนู</div>
+        <div class="slots">
+          <button class="slot mbtn" id="btnInv" title="กระเป๋า (I)">🎒<span class="k">I</span></button>
+          <button class="slot mbtn" id="btnCraft" title="คราฟต์ (C)">🔨<span class="k">C</span></button>
+          <button class="slot mbtn" id="btnShop" title="ร้านค้า (B)">🏪<span class="k">B</span></button>
+          <button class="slot mbtn" id="btnHome" title="กลับบ้าน (H)">🏠<span class="k">H</span></button>
+        </div>
+      </div>
     </div>
   </div>
 

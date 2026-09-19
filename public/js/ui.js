@@ -60,7 +60,7 @@ window.UI = (() => {
     else tag.classList.add('hidden');
   }
   function refreshHotbar() {
-    const me = G().me; const hb = $('#hotbar'); hb.innerHTML = '';
+    const me = G().me; const hb = $('#hbZones'); hb.innerHTML = '';
     while (me.hotbar.length < D.ITEM_SLOTS) me.hotbar.push(null);
     const sel = G().sel;
     // ---- zone 1: tools (auto from inventory) ----
@@ -359,8 +359,8 @@ window.UI = (() => {
     $('#signSave').onclick = () => { if (signPos) Net.send({ t: 'sign_text', x: signPos.x, y: signPos.y, text: $('#signInput').value }); closePanels(); };
     // world chat
     $$('.wtab').forEach(b => b.onclick = () => { wcScope = b.dataset.scope; $$('.wtab').forEach(t => t.classList.toggle('active', t === b)); b.textContent = b.dataset.scope === 'local' ? '📍 ใกล้ตัว' : '🌍 ทั่วโลก'; renderWorld(); });
-    $('#wcToggle').onclick = () => { const wc = $('#worldChat'); if (innerWidth <= 1100) { wc.classList.toggle('expanded'); wc.classList.remove('collapsed'); $('#wcToggle').textContent = wc.classList.contains('expanded') ? '▾' : '▴'; } else { wc.classList.toggle('collapsed'); $('#wcToggle').textContent = wc.classList.contains('collapsed') ? '▴' : '▾'; } };
-    $('#wcForm').onsubmit = (e) => { e.preventDefault(); const inp = $('#wcInput'); const text = inp.value.trim(); if (text) Net.send({ t: 'chat', scope: wcScope, text }); inp.value = ''; inp.blur(); if (innerWidth <= 1100) $('#worldChat').classList.remove('expanded'); };
+    $('#wcToggle').onclick = () => { const wc = $('#worldChat'); if (innerWidth <= 1440) { wc.classList.toggle('expanded'); wc.classList.remove('collapsed'); $('#wcToggle').textContent = wc.classList.contains('expanded') ? '▾' : '▴'; } else { wc.classList.toggle('collapsed'); $('#wcToggle').textContent = wc.classList.contains('collapsed') ? '▴' : '▾'; } };
+    $('#wcForm').onsubmit = (e) => { e.preventDefault(); const inp = $('#wcInput'); const text = inp.value.trim(); if (text) Net.send({ t: 'chat', scope: wcScope, text }); inp.value = ''; inp.blur(); if (innerWidth <= 1440) $('#worldChat').classList.remove('expanded'); };
     $('#wcInput').addEventListener('keydown', (e) => { if (e.key === 'Escape') e.target.blur(); e.stopPropagation(); });
     // dock
     $('#dockBtn').onclick = () => { $('#dockList').classList.toggle('hidden'); refreshDock(); };

@@ -80,9 +80,14 @@ h2, h3, h4 { margin: 0 0 10px; } h4 { margin-top: 12px; font-size: 14px; color: 
 @keyframes pop { from { transform: scale(.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
 #hudBottom { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 13; }
-@media (max-width: 1100px) { #hudBottom { bottom: 12px; } #worldChat { width: 240px; } #worldChat:not(.expanded) .wc-body { display: none; } #worldChat:not(.expanded) { width: 200px; } }
 #hotbarName { background: rgba(0,0,0,.5); color: #fff; padding: 2px 10px; border-radius: 10px; font-size: 12px; min-height: 18px; }
 #hotbar { display: flex; align-items: flex-end; gap: 6px; background: rgba(60,40,20,.75); padding: 4px 6px 5px; border-radius: 10px; border: 3px solid var(--wood); }
+#hbZones { display: contents; }
+.slot.mbtn { font-size: 22px; padding: 0; font-family: inherit; }
+.slot.mbtn:hover { background: #fff; box-shadow: 0 0 0 2px var(--accent); }
+.slot.mbtn:active { transform: translateY(1px); }
+.slot.mbtn .k { font-weight: 700; }
+@media (max-width: 980px) { .slot { width: 40px; height: 40px; } .slot img { width: 30px; height: 30px; } .slot.mbtn { font-size: 18px; } #hotbar .zl { font-size: 9px; } }
 #hotbar .zone { display: flex; flex-direction: column; gap: 3px; }
 #hotbar .zl { font-size: 10px; font-weight: 700; color: #f3dfb5; text-shadow: 0 1px 0 #000; padding-left: 2px; letter-spacing: .2px; }
 #hotbar .zl small { font-weight: 400; color: #cdb98f; margin-left: 2px; }
@@ -98,7 +103,6 @@ h2, h3, h4 { margin: 0 0 10px; } h4 { margin-top: 12px; font-size: 14px; color: 
 .slot .n { position: absolute; bottom: 1px; right: 3px; font-size: 11px; font-weight: 700; color: #fff; text-shadow: 0 0 2px #000, 0 0 2px #000; }
 .slot .k { position: absolute; top: 0; left: 3px; font-size: 9px; color: var(--muted); }
 .slot.empty { opacity: .6; }
-#hudBottom .hud-btns { margin-top: 2px; }
 
 /* world chat */
 #worldChat { position: absolute; left: 10px; bottom: 12px; width: 300px; max-width: calc(100vw - 20px); font-size: 13px; z-index: 12; }
@@ -204,3 +208,7 @@ h2, h3, h4 { margin: 0 0 10px; } h4 { margin-top: 12px; font-size: 14px; color: 
 .era .items span.got { background: #d9f5e3; }
 .toast.levelup { background: linear-gradient(90deg, #ffb454, #e07a1f); color: #fff; font-weight: 700; font-size: 16px; border-color: #fff; }
 .cell .ride { position: absolute; top: -2px; left: -2px; font-size: 10px; background: var(--blue); color: #fff; border-radius: 6px; padding: 0 4px; border: none; cursor: pointer; }
+
+/* when the hotbar (~780px) would collide with the chat/dock, lift them above it and collapse the chat to its header */
+@media (max-width: 1440px) { #worldChat, #dock { bottom: 112px; } #worldChat { width: 260px; } #worldChat:not(.expanded) .wc-body { display: none; } #worldChat:not(.expanded) { width: 200px; } }
+@media (max-width: 980px) { #worldChat, #dock { bottom: 96px; } }
