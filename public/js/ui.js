@@ -50,22 +50,27 @@ window.UI = (() => {
     hygiene: 'ตัวสกปรก → อาบน้ำในอ่างอาบน้ำ หรือใช้ชักโครก (คราฟต์ได้ในยุคอุตสาหกรรม)',
   };
   function refreshNeeds() {
-    const n = G().me.needs; let worst = null;
+    const me = G().me; const n = me.needs; let worst = null;
     for (const [k, v] of Object.entries(n)) {
       const row = $(`.need[data-n="${k}"]`); if (!row) continue;
-      const el = row.querySelector('i'); el.style.width = v + '%'; el.className = v < 15 ? 'crit' : v < 35 ? 'low' : '';
-      row.classList.toggle('crit', v < 15); row.classList.toggle('low', v >= 15 && v < 35); row.querySelector('.pc').textContent = Math.round(v) + '%';
+      row.querySelector('i').style.width = v + '%';
+      row.classList.toggle('crit', v < 15); row.classList.toggle('low', v >= 15 && v < 35);
+      const pc = row.querySelector('.pc'); pc.textContent = Math.round(v) + '%'; pc.classList.toggle('ok', v >= 35);
       row.title = `${D.NEEDS[k]} ${Math.round(v)}% · ${NEED_FIX[k]}`;
       if (v < 15 && (!worst || v < n[worst])) worst = k;
     }
+    const hp = me.hp == null ? 100 : me.hp; const hpRow = $('.stat.hp');
+    $('#hpBar').style.width = hp + '%'; $('#hpText').textContent = `${Math.round(hp)}/100`; hpRow.classList.toggle('crit', hp < 25);
     const h = $('#needHint');
-    if (worst) { h.textContent = '⚠️ ' + NEED_FIX[worst]; h.classList.remove('hidden'); } else h.classList.add('hidden');
+    if (hp < 25) { h.querySelector('span').textContent = 'เลือดใกล้หมด! กินอาหารและพักผ่อนก่อนจะเป็นลม'; h.classList.remove('hidden'); }
+    else if (worst) { h.querySelector('span').textContent = NEED_FIX[worst]; h.classList.remove('hidden'); }
+    else h.classList.add('hidden');
   }
   function refreshCoins() { $('#coins').textContent = G().me.coins; $('#shopCoins').textContent = `· มี ${G().me.coins} เหรียญ`; }
   function refreshProfile() { const me = G().me; $('#hudName').textContent = me.name; const av = $('#hudAvatar'); av.innerHTML = ''; av.appendChild(avatarCanvas(me.look)); }
   function refreshLevel() {
     const me = G().me; const lv = me.level || 1, xp = me.xp || 0, need = D.xpNeed(lv); const era = D.eraOf(lv);
-    $('#lvl').textContent = `Lv ${lv}`; $('#era').textContent = `${era.icon} ${era.th}`;
+    $('#lvl').textContent = `Lv ${lv}`; $('#era').textContent = era.th;
     $('#xpBar').style.width = Math.min(100, xp / need * 100) + '%'; $('#xpText').textContent = `${xp}/${need} XP`;
     $('#craftHint').textContent = `เลเวล ${lv} · ${era.th} · สูตรที่ล็อกจะปลดเมื่อถึงเลเวลที่กำหนด`;
   }
@@ -338,7 +343,7 @@ window.UI = (() => {
 
   // ---------- me updates ----------
   function onMe(fields) {
-    if (fields.includes('needs')) refreshNeeds();
+    if (fields.includes('needs') || fields.includes('hp')) refreshNeeds();
     if (fields.includes('coins')) refreshCoins();
     if (fields.includes('inv') || fields.includes('hotbar')) { refreshHotbar(); const p = currentPanel(); if (p) refreshPanel(p); }
     if (fields.includes('home')) toast('🏠 บ้านของคุณอยู่ที่นี่แล้ว กด H เพื่อกลับบ้าน', 'info');
@@ -349,6 +354,7 @@ window.UI = (() => {
 
   // ---------- init ----------
   function init(opts) {
+    $$('img.ui-ic[data-ic]').forEach(im => { im.src = SP.uiIcon(im.dataset.ic); });
     $$('[data-close]').forEach(b => b.onclick = closePanels);
     $('#modal').addEventListener('mousedown', (e) => { if (e.target === $('#modal')) closePanels(); });
     $('#btnInv').onclick = () => toggle('pInv'); $('#btnCraft').onclick = () => toggle('pCraft'); $('#btnShop').onclick = () => toggle('pShop');
@@ -392,6 +398,7 @@ window.UI = (() => {
     Net.on('chat', (m) => addWorld(m));
     Net.on('sign', onSign);
     Net.on('open', (m) => { if (m.panel === 'shop') openPanel('pShop'); else if (m.panel === 'cook') openPanel('pCook'); });
+    Net.on('faint', (m) => { toast(`คุณเป็นลม! ถูกพากลับ${m.where}${m.lost ? ` และทำเหรียญหาย ${m.lost}` : ''}`, 'error', 7000); Game.float('เป็นลม...', '#ff8080'); });
   }
   function start(init) {
     friends = init.friends || []; reqs = init.reqs || []; unread = init.me.unread || {};

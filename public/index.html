@@ -71,18 +71,19 @@
       <div class="ph-av" id="hudAvatar"></div>
       <div class="ph-info">
         <div class="ph-name" id="hudName">-</div>
-        <div class="ph-lv" id="lvlBox" title="คลิกเพื่อดูยุคและการปลดล็อก"><b id="lvl">Lv 1</b><span class="dot">·</span><span id="era">🪨 ยุคหิน</span></div>
+        <div class="ph-lv" id="lvlBox" title="คลิกเพื่อดูยุคและการปลดล็อก"><b id="lvl">Lv 1</b><span class="dot">·</span><span id="era">ยุคหิน</span></div>
       </div>
-      <div class="ph-coins" title="เหรียญ">🪙 <b id="coins">0</b></div>
+      <div class="ph-coins" title="เหรียญ"><img class="ui-ic" data-ic="coin" alt=""><b id="coins">0</b></div>
     </div>
-    <div class="xp-row" title="ค่าประสบการณ์ ไปเลเวลถัดไป"><span class="xp-lb">XP</span><div class="bar xp"><i id="xpBar"></i></div><span class="muted" id="xpText"></span></div>
+    <div class="stat hp" title="เลือด: ลดเมื่อหิวหรือหมดแรงถึง 0 · ฟื้นเองเมื่ออิ่มและพักพอ"><img class="ui-ic" data-ic="heart" alt=""><span class="lb">เลือด</span><div class="bar"><i id="hpBar"></i></div><span class="pc" id="hpText"></span></div>
+    <div class="stat xp" title="ค่าประสบการณ์ ไปเลเวลถัดไป"><img class="ui-ic" data-ic="xp" alt=""><span class="lb">XP</span><div class="bar"><i id="xpBar"></i></div><span class="pc" id="xpText"></span></div>
     <div class="needs">
-      <div class="need" data-n="hunger" title="ความอิ่ม"><div class="nt"><span class="ic">🍞</span><span class="lb">อิ่ม</span><span class="pc"></span></div><div class="bar"><i></i></div></div>
-      <div class="need" data-n="energy" title="พลังงาน"><div class="nt"><span class="ic">⚡</span><span class="lb">พลังงาน</span><span class="pc"></span></div><div class="bar"><i></i></div></div>
-      <div class="need" data-n="fun" title="ความสนุก"><div class="nt"><span class="ic">🎉</span><span class="lb">สนุก</span><span class="pc"></span></div><div class="bar"><i></i></div></div>
-      <div class="need" data-n="hygiene" title="ความสะอาด"><div class="nt"><span class="ic">🛁</span><span class="lb">สะอาด</span><span class="pc"></span></div><div class="bar"><i></i></div></div>
+      <div class="stat need" data-n="hunger"><img class="ui-ic" data-ic="bread" alt=""><span class="lb">อิ่ม</span><div class="bar"><i></i></div><span class="pc"></span></div>
+      <div class="stat need" data-n="energy"><img class="ui-ic" data-ic="bolt" alt=""><span class="lb">พลังงาน</span><div class="bar"><i></i></div><span class="pc"></span></div>
+      <div class="stat need" data-n="fun"><img class="ui-ic" data-ic="star" alt=""><span class="lb">สนุก</span><div class="bar"><i></i></div><span class="pc"></span></div>
+      <div class="stat need" data-n="hygiene"><img class="ui-ic" data-ic="drop" alt=""><span class="lb">สะอาด</span><div class="bar"><i></i></div><span class="pc"></span></div>
     </div>
-    <div id="needHint" class="hidden"></div>
+    <div id="needHint" class="hidden"><img class="ui-ic" data-ic="warn" alt=""><span></span></div>
     <div id="vehicleTag" class="hidden"></div>
   </div>
 

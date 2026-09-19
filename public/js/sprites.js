@@ -370,5 +370,24 @@
     const u = itemIcon(id).toDataURL(); cache.set(key, u); return u;
   }
 
-  window.Sprites = { tile: tileSprite, obj: objSprite, crop: cropSprite, char: charSprite, vehicle: vehicleSprite, item: itemIcon, iconURL: iconDataURL, hash, shade, mk, ctxOf };
+  // ---------------- UI ICONS (no emoji) ----------------
+  const UI_MAPS = {
+    heart: ['................', '..rrr.....rrr...', '.rrrrr...rrrrr..', 'rrrrrrr.rrrrrrr.', 'rrrwrrrrrrrrrrr.', 'rrwwrrrrrrrrrrr.', 'rrrrrrrrrrrrrrr.', '.rrrrrrrrrrrrr..', '..rrrrrrrrrrr...', '...rrrrrrrrr....', '....rrrrrrr.....', '.....rrrrr......', '......rrr.......', '.......r........', '................', '................'],
+    bolt: ['................', '........yyyy....', '.......yyyy.....', '......yyyy......', '.....yyyy.......', '....yyyyyyyy....', '...yyyyyyyy.....', '......yyyy......', '.....yyyy.......', '....yyyy........', '...yyyy.........', '..yyy...........', '..yy............', '................', '................', '................'],
+    star: ['................', '.......yy.......', '.......yy.......', '......yyyy......', '......yyyy......', '.yyyyyyyyyyyyyy.', '..yyyyyyyyyyyy..', '...yyyyyyyyyy...', '....yyyyyyyy....', '....yyyyyyyy....', '...yyyyyyyyyy...', '...yyyy..yyyy...', '..yyy......yyy..', '..y..........y..', '................', '................'],
+    drop: ['................', '.......uu.......', '.......uu.......', '......uuuu......', '......uuuu......', '.....uuuuuu.....', '....uuuuuuuu....', '....uuwuuuuu....', '...uuuwuuuuuu...', '...uuwuuuuuuu...', '...uuuuuuuuuu...', '....uuuuuuuu....', '.....uuuuuu.....', '.......uu.......', '................', '................'],
+    coin: ['................', '.....yyyyyy.....', '...yyHHHHHHyy...', '..yHHhhhhhhHHy..', '.yHhhhhhhhhhhHy.', '.yHhhhHHHHhhhHy.', '.yHhhHhhhhhhhHy.', '.yHhhHhhhhhhhHy.', '.yHhhHhhhhhhhHy.', '.yHhhhHHHHhhhHy.', '.yHhhhhhhhhhhHy.', '..yHHhhhhhhHHy..', '...yyHHHHHHyy...', '.....yyyyyy.....', '................', '................'],
+    bread: ICON_MAPS.bread,
+    warn: ['................', '.......rr.......', '......rrrr......', '......rrrr......', '.....rrwwrr.....', '.....rrwwrr.....', '....rrrwwrrr....', '....rrrwwrrr....', '...rrrrwwrrrr...', '...rrrrrrrrrr...', '..rrrrrwwrrrrr..', '..rrrrrwwrrrrr..', '.rrrrrrrrrrrrrr.', '.rrrrrrrrrrrrrr.', '................', '................'],
+    xp: ['................', '................', '.......aa.......', '......aaaa......', '.....aaaaaa.....', '....aaaaaaaa....', '...aaaaaaaaaa...', '.....aaaaaa.....', '.....aaaaaa.....', '.....aaaaaa.....', '.....aaaaaa.....', '.....aaaaaa.....', '................', '................', '................', '................'],
+  };
+  function uiIconURL(name) {
+    const key = `ui_${name}`;
+    if (cache.has(key)) return cache.get(key);
+    const c = mk(16, 16), x = ctxOf(c);
+    if (UI_MAPS[name]) drawMap(x, UI_MAPS[name], { ...PAL, y: '#f2c94c', H: '#d9962b', h: '#ffe08a', r: '#e04848', w: '#ffffff', u: '#4b8fe0', a: '#43aa8b' }, 16, 16);
+    const u = c.toDataURL(); cache.set(key, u); return u;
+  }
+
+  window.Sprites = { uiIcon: uiIconURL, tile: tileSprite, obj: objSprite, crop: cropSprite, char: charSprite, vehicle: vehicleSprite, item: itemIcon, iconURL: iconDataURL, hash, shade, mk, ctxOf };
 })();

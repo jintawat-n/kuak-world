@@ -67,7 +67,7 @@ function newPlayer(u, name, look) {
     coins: 100, needs: { hunger: 90, energy: 100, fun: 80, hygiene: 90 },
     home: null, friends: [], reqIn: [], reqOut: [], unread: {},
     stats: { wood: 0, stone: 0, harvest: 0, built: 0 },
-    level: 1, xp: 0, vehicle: null,
+    level: 1, xp: 0, vehicle: null, hp: 100,
     createdAt: Date.now(), lastSeen: Date.now(), state: null,
   };
 }
@@ -362,9 +362,10 @@ function eat(s, itemId) {
   p.needs.hunger = clamp(p.needs.hunger + (it.food.h || 0), 0, 100);
   p.needs.energy = clamp(p.needs.energy + (it.food.e || 0), 0, 100);
   p.needs.fun = clamp(p.needs.fun + (it.food.f || 0), 0, 100);
-  toast(s, `กิน${it.th} 😋 ความหิว +${it.food.h || 0}`, 'info');
+  p.hp = clamp((p.hp == null ? 100 : p.hp) + Math.round((it.food.h || 0) * 0.3), 0, 100);
+  toast(s, `กิน${it.th} ความอิ่ม +${it.food.h || 0} เลือด +${Math.round((it.food.h || 0) * 0.3)}`, 'info');
   s.anim = { a: 'eat', until: Date.now() + 600 };
-  sendMe(s, ['inv', 'needs']); db.putPlayer(p);
+  sendMe(s, ['inv', 'needs', 'hp']); db.putPlayer(p);
 }
 function useMisc(s, itemId) {
   const p = s.p; const it = D.ITEMS[itemId];
@@ -639,7 +640,7 @@ function enter(s, p) {
   const prev = online.get(p.id);
   if (prev && prev !== s) { send(prev.ws, { t: 'kick', reason: 'มีการเข้าสู่ระบบจากที่อื่น' }); prev.p = null; prev.ws.close(); sessions.delete(prev); }
   s.p = p; p.lastSeen = Date.now(); p.state = null; s.lastActive = Date.now();
-  p.level = p.level || 1; p.xp = p.xp || 0; p.vehicle = p.vehicle || null;
+  p.level = p.level || 1; p.xp = p.xp || 0; p.vehicle = p.vehicle || null; if (p.hp == null) p.hp = 100;
   // migrate old 8-slot hotbar (tools mixed in) -> item-only zone
   if (!Array.isArray(p.hotbar) || p.hotbar.length !== D.ITEM_SLOTS || p.hotbar.some(x => x && D.ITEMS[x] && D.ITEMS[x].cat === 'tool')) {
     const items = (p.hotbar || []).filter(x => x && D.ITEMS[x] && D.ITEMS[x].cat !== 'tool');
@@ -698,7 +699,12 @@ setInterval(() => {
     else if (p.state === 'sit') { n.energy = clamp(n.energy + 0.4, 0, 100); n.fun = clamp(n.fun + 0.3, 0, 100); }
     else if (p.state === 'bath') { n.hygiene = clamp(n.hygiene + 4, 0, 100); if (n.hygiene >= 100) { p.state = null; sendMe(s, ['state']); toast(s, 'อาบน้ำเสร็จ สะอาดสดชื่น ✨', 'info'); } }
     else { n.energy = clamp(n.energy - (s.moving ? 0.05 : 0.02), 0, 100); n.fun = clamp(n.fun - 0.04, 0, 100); }
-    if (tickN % 5 === 0) { sendMe(s, ['needs']); db.putPlayer(p); }
+    // health: drains while starving/exhausted, regenerates when fed and rested
+    const starving = n.hunger <= 0, exhausted = n.energy <= 0;
+    if (starving || exhausted) p.hp = clamp(p.hp - (starving && exhausted ? 0.3 : 0.15), 0, 100);
+    else if (n.hunger > 30 && n.energy > 30) p.hp = clamp(p.hp + (p.state === 'sleep' ? 0.5 : 0.1), 0, 100);
+    if (p.hp <= 0) faint(s);
+    if (tickN % 5 === 0) { sendMe(s, ['needs', 'hp']); db.putPlayer(p); }
   }
   if (tickN % 5 === 0) {
     broadcastAll({ t: 'time', time: db.world.time, online: online.size });
@@ -712,6 +718,16 @@ setInterval(() => {
   if (tickN % 60 === 0) W.evict();
   if (tickN % 300 === 0) { for (const u of W.regrow()) broadcastWorld(u); }
 }, 1000);
+
+function faint(s) {
+  const p = s.p;
+  const lost = Math.min(100, Math.floor(p.coins * 0.1)); p.coins -= lost;
+  p.hp = 50; p.needs.hunger = Math.max(p.needs.hunger, 30); p.needs.energy = Math.max(p.needs.energy, 50); p.state = null;
+  const where = p.home ? 'บ้าน' : 'เมือง';
+  if (p.home) warp(s, p.home.x, p.home.y + 1); else warp(s, D.SPAWN.x, D.SPAWN.y + 2);
+  send(s.ws, { t: 'faint', where, lost });
+  sendMe(s, ['needs', 'hp', 'coins']); db.putPlayer(p);
+}
 
 function shutdown() {
   console.log('saving...');
