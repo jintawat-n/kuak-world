@@ -61,19 +61,39 @@ window.UI = (() => {
   }
   function refreshHotbar() {
     const me = G().me; const hb = $('#hotbar'); hb.innerHTML = '';
-    while (me.hotbar.length < 8) me.hotbar.push(null);
-    me.hotbar.forEach((id, i) => {
-      const s = document.createElement('div'); s.className = 'slot' + (i === G().slot ? ' active' : '');
-      const n = id ? (me.inv[id] || 0) : 0;
-      if (id && D.ITEMS[id]) { s.innerHTML = `${icon(id)}<span class="n">${D.ITEMS[id].cat === 'tool' ? '' : n}</span>`; if (!n) s.classList.add('empty'); }
-      s.innerHTML += `<span class="k">${i + 1}</span>`;
-      s.title = id && D.ITEMS[id] ? D.ITEMS[id].th : 'ว่าง (คลิกไอเทมในกระเป๋าเพื่อใส่)';
-      s.onclick = () => Game.selectSlot(i);
-      s.oncontextmenu = (e) => { e.preventDefault(); me.hotbar[i] = null; Net.send({ t: 'hotbar', items: me.hotbar }); refreshHotbar(); };
-      hb.appendChild(s);
+    while (me.hotbar.length < D.ITEM_SLOTS) me.hotbar.push(null);
+    const sel = G().sel;
+    // ---- zone 1: tools (auto from inventory) ----
+    const zt = document.createElement('div'); zt.className = 'zone';
+    zt.innerHTML = '<div class="zl">🛠️ เครื่องมือ <small>6-0 · Tab</small></div>';
+    const rt = document.createElement('div'); rt.className = 'slots';
+    D.TOOL_KINDS.forEach((k, i) => {
+      const id = D.bestTool(me.inv, k.kind);
+      const sl = document.createElement('div'); sl.className = 'slot tool' + (sel.zone === 'tool' && sel.i === i ? ' active' : '') + (id ? '' : ' empty');
+      sl.innerHTML = (id ? icon(id) : `<span class="ph">${{ axe: '🪓', pickaxe: '⛏️', hoe: '🌱', can: '💧', hammer: '🔨' }[k.kind]}</span>`) + `<span class="k">${i === 4 ? 0 : i + 6}</span>` + (id && D.ITEMS[id].dmg ? '<span class="tier">★</span>' : '');
+      sl.title = id ? `${D.ITEMS[id].th}${D.ITEMS[id].dmg ? ' (แรง x' + D.ITEMS[id].dmg + ')' : ''}` : `ยังไม่มี${k.th} (คราฟต์หรือซื้อที่ร้าน)`;
+      sl.onclick = () => Game.selectTool(i);
+      rt.appendChild(sl);
     });
-    const sel = Game.selectedId(); const it = D.ITEMS[sel];
-    $('#hotbarName').textContent = sel === 'hand' ? '✋ มือเปล่า (คลิกขวา/E เพื่อโต้ตอบ)' : `${it.th}${it.cat === 'tool' ? '' : ' x' + (me.inv[sel] || 0)}`;
+    zt.appendChild(rt); hb.appendChild(zt);
+    const div = document.createElement('div'); div.className = 'zdiv'; hb.appendChild(div);
+    // ---- zone 2: items (player arranged) ----
+    const zi = document.createElement('div'); zi.className = 'zone';
+    zi.innerHTML = '<div class="zl">🎒 อุปกรณ์ <small>1-5</small></div>';
+    const ri = document.createElement('div'); ri.className = 'slots';
+    me.hotbar.forEach((id, i) => {
+      const sl = document.createElement('div'); sl.className = 'slot' + (sel.zone === 'item' && sel.i === i ? ' active' : '');
+      const n = id ? (me.inv[id] || 0) : 0;
+      if (id && D.ITEMS[id]) { sl.innerHTML = `${icon(id)}<span class="n">${n}</span>`; if (!n) sl.classList.add('empty'); }
+      sl.innerHTML += `<span class="k">${i + 1}</span>`;
+      sl.title = id && D.ITEMS[id] ? D.ITEMS[id].th + ' · คลิกขวาเพื่อเอาออก' : 'ว่าง (เลือกช่องนี้แล้วคลิกไอเทมในกระเป๋า)';
+      sl.onclick = () => Game.selectItem(i);
+      sl.oncontextmenu = (e) => { e.preventDefault(); me.hotbar[i] = null; Net.send({ t: 'hotbar', items: me.hotbar }); refreshHotbar(); };
+      ri.appendChild(sl);
+    });
+    zi.appendChild(ri); hb.appendChild(zi);
+    const cur = Game.selectedId(); const it = D.ITEMS[cur];
+    $('#hotbarName').textContent = cur === 'hand' ? (sel.zone === 'tool' ? `✋ ยังไม่มี${D.TOOL_KINDS[sel.i].th} · ใช้มือเปล่า` : '✋ มือเปล่า (คลิกขวา/E เพื่อโต้ตอบ)') : `${it.th}${it.cat === 'tool' ? '' : ' x' + (me.inv[cur] || 0)}`;
   }
   function refreshClock() {
     if (!G().me) return;
@@ -89,13 +109,19 @@ window.UI = (() => {
     const items = Object.entries(me.inv).filter(([id, n]) => n > 0 && D.ITEMS[id] && (invCat === 'all' || D.ITEMS[id].cat === invCat));
     if (!items.length) { grid.innerHTML = '<div class="muted">ไม่มีไอเทมในหมวดนี้</div>'; return; }
     for (const [id, n] of items) {
-      const it = D.ITEMS[id]; const c = document.createElement('div'); c.className = 'cell';
+      const it = D.ITEMS[id]; const c = document.createElement('div'); c.className = 'cell' + (it.cat === 'tool' ? ' istool' : '');
       c.innerHTML = `${icon(id)}<span class="nm">${it.th}</span><span class="n">${it.cat === 'tool' ? '' : n}</span>`;
       c.title = it.th + (it.food ? ` · กิน: หิว+${it.food.h || 0}${it.food.e ? ' พลัง+' + it.food.e : ''}${it.food.f ? ' สนุก+' + it.food.f : ''}` : it.crop ? ' · เมล็ดพันธุ์ ปลูกบนดินพรวน' : it.obj || it.tile != null ? ' · วางบนพื้น' : '');
       if (it.vehicle) { const b = document.createElement('button'); b.className = 'ride'; const riding = me.vehicle === it.vehicle; b.textContent = riding ? 'ลง' : 'ขี่'; b.onclick = (e) => { e.stopPropagation(); Net.send({ t: 'mount', item: id }); closePanels(); }; c.appendChild(b); c.onclick = () => Net.send({ t: 'mount', item: id }); c.title = `${it.th} · ความเร็ว x${D.VEHICLES[it.vehicle].speed}${D.VEHICLES[it.vehicle].water ? ' · ใช้ในน้ำ' : D.VEHICLES[it.vehicle].fly ? ' · บินได้' : ' · ใช้บนบก'}`; grid.appendChild(c); continue; }
       if (it.food) { const b = document.createElement('button'); b.className = 'eat'; b.textContent = 'กิน'; b.onclick = (e) => { e.stopPropagation(); Net.send({ t: 'eat', item: id }); }; c.appendChild(b); }
       else if (it.use) { const b = document.createElement('button'); b.className = 'eat'; b.textContent = 'ใช้'; b.onclick = (e) => { e.stopPropagation(); Net.send({ t: 'usemisc', item: id }); }; c.appendChild(b); }
-      c.onclick = () => { me.hotbar[G().slot] = id; Net.send({ t: 'hotbar', items: me.hotbar }); refreshHotbar(); toast(`ใส่ ${it.th} ในช่องด่วน ${G().slot + 1}`, 'info', 1200); };
+      c.onclick = () => {
+        if (it.cat === 'tool') { const ki = D.TOOL_KINDS.findIndex(k => k.tiers.includes(id)); if (ki >= 0) { Game.selectTool(ki); toast(`เลือก ${it.th} แล้ว (โซนเครื่องมือ)`, 'info', 1200); } return; }
+        const sel = G().sel; let slot = sel.zone === 'item' ? sel.i : me.hotbar.indexOf(id);
+        if (slot < 0) slot = me.hotbar.indexOf(null); if (slot < 0) slot = 0;
+        const dup = me.hotbar.indexOf(id); if (dup >= 0 && dup !== slot) me.hotbar[dup] = null;
+        me.hotbar[slot] = id; Net.send({ t: 'hotbar', items: me.hotbar }); Game.selectItem(slot); toast(`ใส่ ${it.th} ในช่องอุปกรณ์ ${slot + 1}`, 'info', 1200);
+      };
       c.oncontextmenu = (e) => { e.preventDefault(); if (it.food) Net.send({ t: 'eat', item: id }); };
       grid.appendChild(c);
     }

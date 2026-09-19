@@ -300,6 +300,17 @@
 
   D.NEEDS = { hunger: 'ความหิว', energy: 'พลังงาน', fun: 'ความสนุก', hygiene: 'ความสะอาด' };
 
+  // hotbar: tool zone (auto from inventory, best tier first) | item zone (player-arranged)
+  D.TOOL_KINDS = [
+    { kind: 'axe',     th: 'ขวาน',    tiers: ['axe_iron', 'axe'] },
+    { kind: 'pickaxe', th: 'อีเต้อ',   tiers: ['pickaxe_iron', 'pickaxe'] },
+    { kind: 'hoe',     th: 'จอบ',     tiers: ['hoe'] },
+    { kind: 'can',     th: 'บัวรดน้ำ', tiers: ['can'] },
+    { kind: 'hammer',  th: 'ค้อน',    tiers: ['hammer'] },
+  ];
+  D.ITEM_SLOTS = 5;
+  D.bestTool = (inv, kind) => { const k = D.TOOL_KINDS.find(t => t.kind === kind); if (!k) return null; for (const id of k.tiers) if (inv[id] > 0) return id; return null; };
+
   if (typeof module !== 'undefined' && module.exports) module.exports = D;
   else root.DEFS = D;
 })(typeof window !== 'undefined' ? window : globalThis);

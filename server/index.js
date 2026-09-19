@@ -63,7 +63,7 @@ function newPlayer(u, name, look) {
   return {
     id: u.id, username: u.username, name, look,
     x: sp.x + 0.5, y: sp.y + 0.5, d: 'down',
-    inv: { ...STARTER }, hotbar: ['axe', 'pickaxe', 'hoe', 'can', 'hammer', 'seed_carrot', 'seed_tomato', 'wood'],
+    inv: { ...STARTER }, hotbar: ['seed_carrot', 'seed_tomato', 'wood', 'bread', null],
     coins: 100, needs: { hunger: 90, energy: 100, fun: 80, hygiene: 90 },
     home: null, friends: [], reqIn: [], reqOut: [], unread: {},
     stats: { wood: 0, stone: 0, harvest: 0, built: 0 },
@@ -565,7 +565,7 @@ function handle(s, m) {
     case 'cook': return craft(s, String(m.id), m.n, true);
     case 'buy': return shop(s, true, String(m.item), m.n);
     case 'sell': return shop(s, false, String(m.item), m.n);
-    case 'hotbar': if (Array.isArray(m.items)) { p.hotbar = m.items.slice(0, 8).map(x => (x && D.ITEMS[x]) ? x : null); db.putPlayer(p); } return;
+    case 'hotbar': if (Array.isArray(m.items)) { p.hotbar = m.items.slice(0, D.ITEM_SLOTS).map(x => (x && D.ITEMS[x] && D.ITEMS[x].cat !== 'tool') ? x : null); db.putPlayer(p); } return;
     case 'chat': return chat(s, m);
     case 'dm': return dm(s, m);
     case 'dm_history': {
@@ -638,6 +638,11 @@ function enter(s, p) {
   if (prev && prev !== s) { send(prev.ws, { t: 'kick', reason: 'มีการเข้าสู่ระบบจากที่อื่น' }); prev.p = null; prev.ws.close(); sessions.delete(prev); }
   s.p = p; p.lastSeen = Date.now(); p.state = null;
   p.level = p.level || 1; p.xp = p.xp || 0; p.vehicle = p.vehicle || null;
+  // migrate old 8-slot hotbar (tools mixed in) -> item-only zone
+  if (!Array.isArray(p.hotbar) || p.hotbar.length !== D.ITEM_SLOTS || p.hotbar.some(x => x && D.ITEMS[x] && D.ITEMS[x].cat === 'tool')) {
+    const items = (p.hotbar || []).filter(x => x && D.ITEMS[x] && D.ITEMS[x].cat !== 'tool');
+    p.hotbar = items.slice(0, D.ITEM_SLOTS); while (p.hotbar.length < D.ITEM_SLOTS) p.hotbar.push(null);
+  }
   if (p.vehicle && !D.VEHICLES[p.vehicle]) p.vehicle = null;
   online.set(p.id, s);
   // make sure not stuck

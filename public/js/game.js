@@ -13,7 +13,7 @@ window.Game = (() => {
   const st = {
     me: null, id: 0, pos: { x: 0, y: 0 }, dir: 'down', moving: false, run: false, state: null,
     players: new Map(), chunks: new Map(), requested: new Map(),
-    cam: { x: 0, y: 0 }, time: 0, timeAt: 0, hover: null, slot: 0,
+    cam: { x: 0, y: 0 }, time: 0, timeAt: 0, hover: null, sel: { zone: 'tool', i: 0 },
     hits: new Map(), particles: [], floats: [], bubbles: new Map(), anim: null, tags: [],
     keys: {}, running: false, lastMoveSend: 0, lastSent: null, joy: { dx: 0, dy: 0 }, friendsPos: [],
     ox: 0, oy: 0, lastChunkReq: 0, lastMini: 0, lastUse: 0, onlineN: 1,
@@ -47,9 +47,10 @@ window.Game = (() => {
   }
   function selectedId() {
     if (!st.me) return 'hand';
-    const id = st.me.hotbar[st.slot];
+    if (st.sel.zone === 'tool') { const k = D.TOOL_KINDS[st.sel.i]; return (k && D.bestTool(st.me.inv, k.kind)) || 'hand'; }
+    const id = st.me.hotbar[st.sel.i];
     if (!id || !D.ITEMS[id]) return 'hand';
-    if (id !== 'hand' && !(st.me.inv[id] > 0)) return 'hand';
+    if (!(st.me.inv[id] > 0)) return 'hand';
     return id;
   }
   function facing() {
@@ -156,7 +157,16 @@ window.Game = (() => {
     st.anim = { a: item.tool || 'place', until: now + 350, icon: itemId, tx, ty };
     Net.send({ t: 'use', x: tx, y: ty, item: itemId });
   }
-  function selectSlot(i) { st.slot = ((i % 8) + 8) % 8; UI.refreshHotbar(); }
+  function selectTool(i) { const n = D.TOOL_KINDS.length; st.sel = { zone: 'tool', i: ((i % n) + n) % n }; UI.refreshHotbar(); }
+  function selectItem(i) { const n = D.ITEM_SLOTS; st.sel = { zone: 'item', i: ((i % n) + n) % n }; UI.refreshHotbar(); }
+  function selectSlot(i) { if (st.sel.zone === 'tool') selectTool(i); else selectItem(i); }
+  // cycle across both zones: tools first, then items
+  function cycle(dir) {
+    const nt = D.TOOL_KINDS.length, ni = D.ITEM_SLOTS, total = nt + ni;
+    let idx = st.sel.zone === 'tool' ? st.sel.i : nt + st.sel.i;
+    idx = ((idx + dir) % total + total) % total;
+    if (idx < nt) selectTool(idx); else selectItem(idx - nt);
+  }
 
   // ---------- particles / effects ----------
   function burst(x, y, color, n, spread = 0.4, up = 2.5) {
@@ -429,12 +439,15 @@ window.Game = (() => {
       st.keys[k] = true;
       if (k === 'shift') st.run = true;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
-      if (k >= '1' && k <= '8') selectSlot(+k - 1);
+      if (k >= '1' && k <= '5') selectItem(+k - 1);
+      else if (k >= '6' && k <= '9') selectTool(+k - 6);
+      else if (k === '0') selectTool(4);
+      else if (k === 'tab') { if (st.sel.zone === 'tool') selectTool(st.sel.i + 1); else selectTool(0); e.preventDefault(); }
       else if (k === 'e') { const f = facing(); useAt(f.x, f.y, 'hand'); }
       else if (k === ' ') { const f = facing(); useAt(f.x, f.y, selectedId()); e.preventDefault(); }
       else if (k === 'v') { if (st.me && st.me.vehicle) Net.send({ t: 'mount' }); else UI.toast('ยังไม่ได้ขึ้นพาหนะ: เปิดกระเป๋า (I) แล้วกด "ขี่" ที่พาหนะ', 'info'); }
-      else if (k === 'q') selectSlot(st.slot - 1);
-      else if (k === 'r') selectSlot(st.slot + 1);
+      else if (k === 'q') cycle(-1);
+      else if (k === 'r') cycle(1);
       else UI.hotkey(k, e);
     });
     window.addEventListener('keyup', (e) => { const k = e.key.toLowerCase(); st.keys[k] = false; if (k === 'shift') st.run = false; });
@@ -448,7 +461,7 @@ window.Game = (() => {
       if (e.button === 0) useAt(t.x, t.y, selectedId()); else if (e.button === 2) useAt(t.x, t.y, 'hand');
     });
     canvas.addEventListener('contextmenu', (e) => e.preventDefault());
-    canvas.addEventListener('wheel', (e) => { e.preventDefault(); if (e.ctrlKey || e.metaKey) setZoom(zoom + (e.deltaY < 0 ? 0.25 : -0.25)); else selectSlot(st.slot + (e.deltaY > 0 ? 1 : -1)); }, { passive: false });
+    canvas.addEventListener('wheel', (e) => { e.preventDefault(); if (e.ctrlKey || e.metaKey) setZoom(zoom + (e.deltaY < 0 ? 0.25 : -0.25)); else cycle(e.deltaY > 0 ? 1 : -1); }, { passive: false });
     // touch: joystick
     const joy = document.getElementById('joy'), knob = document.getElementById('joyKnob');
     let jid = null, jc = null;
@@ -510,5 +523,5 @@ window.Game = (() => {
   function stop() { st.running = false; }
   function init() { resize(); bindInput(); bindNet(); }
 
-  return { st, init, start, stop, setZoom, getZoom: () => zoom, tileAt, objAt, selectedId, selectSlot, useAt, float, hourOf, burst, passable };
+  return { st, init, start, stop, setZoom, getZoom: () => zoom, tileAt, objAt, selectedId, selectSlot, selectTool, selectItem, useAt, float, hourOf, burst, passable };
 })();
