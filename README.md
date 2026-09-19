@@ -45,3 +45,7 @@ public/js/main.js     auth + character creator + lifecycle
 ```
 
 ข้อมูลผู้เล่น/โลกเก็บที่ `data/` (สร้างอัตโนมัติ, ไม่เข้า git)
+
+## กติกา UI
+
+- **ห้ามใช้อิโมจิ** ทุกที่ในเกม (ปุ่ม ป้าย ข้อความแจ้งเตือน และที่วาดบน canvas) ใช้ไอคอน pixel ที่วาดด้วยโค้ดใน `public/js/sprites.js` (`UI_MAPS` → `Sprites.uiIcon(name)`) หรือข้อความล้วน สัญลักษณ์ตัวอักษรอย่าง ✕ ★ ➤ ใช้ได้

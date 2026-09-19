@@ -249,7 +249,7 @@ window.Game = (() => {
       ctx.fillStyle = t.isMe ? '#ffe08a' : t.friend ? '#9be7a1' : '#fff'; ctx.fillText(t.name, sx, sy);
       const b = st.bubbles.get(t.id);
       if (b && b.until > now) drawBubble(sx, sy - 14 * dpr, b.text);
-      if (t.state === 'sleep') { ctx.font = `${12 * dpr}px sans-serif`; ctx.fillStyle = '#fff'; ctx.fillText('💤', sx + 10 * dpr + Math.sin(now / 400) * 3 * dpr, sy - 4 * dpr - (now / 30 % 10) * dpr); }
+      if (t.state === 'sleep') { ctx.drawImage(SP.uiIconCanvas('zz'), sx + 8 * dpr + Math.sin(now / 400) * 3 * dpr, sy - 22 * dpr - (now / 30 % 10) * dpr, 16 * dpr, 16 * dpr); }
     }
     for (const f of st.floats) {
       ctx.globalAlpha = Math.min(1, f.life); ctx.font = `700 ${13 * dpr}px ${getComputedStyle(document.body).fontFamily}`;
@@ -289,8 +289,7 @@ window.Game = (() => {
     }
     if (o.t === 'crop' && o.s >= 4) { // ripe indicator
       const bob = Math.sin(now / 300) * 2 * dpr;
-      ctx.font = `${10 * dpr}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
-      ctx.fillText('✨', sx + TILE / 2, sy - 2 * dpr + bob);
+      ctx.drawImage(SP.uiIconCanvas('spark'), sx + TILE / 2 - 6 * dpr, sy - 14 * dpr + bob, 12 * dpr, 12 * dpr);
     }
     if (o.o && o.o !== st.id && D.OBJ[o.t] && D.OBJ[o.t].build && st.hover && st.hover.x === e.x && st.hover.y === e.y) {
       ctx.fillStyle = 'rgba(255,80,80,.25)'; ctx.fillRect(ox + e.x * TILE, oy + e.y * TILE, TILE, TILE);

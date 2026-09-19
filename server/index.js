@@ -320,12 +320,12 @@ function useFurniture(s, x, y, obj, def) {
   if (use === 'fountain') {
     if ((s.cool.fountain || 0) > now) return toast(s, 'เพิ่งเล่นน้ำพุไป รอสักครู่', 'info');
     s.cool.fountain = now + 15000; p.needs.fun = clamp(p.needs.fun + 10, 0, 100); p.needs.hygiene = clamp(p.needs.hygiene + 5, 0, 100);
-    toast(s, '⛲ เล่นน้ำพุ ความสนุก +10', 'info'); sendMe(s, ['needs']); return;
+    toast(s, 'เล่นน้ำพุ ความสนุก +10', 'info'); sendMe(s, ['needs']); return;
   }
   if (use === 'pc') {
     if ((s.cool.pc || 0) > now) return toast(s, 'เพิ่งเล่นคอมไป รอสักครู่', 'info');
     s.cool.pc = now + 20000; p.needs.fun = clamp(p.needs.fun + 25, 0, 100); p.needs.energy = clamp(p.needs.energy - 2, 0, 100);
-    toast(s, '💻 เล่นคอมพิวเตอร์ ความสนุก +25', 'info'); sendMe(s, ['needs']); return;
+    toast(s, 'เล่นคอมพิวเตอร์ ความสนุก +25', 'info'); sendMe(s, ['needs']); return;
   }
   if (use === 'sleep') {
     p.x = x + 0.5; p.y = y + 0.5; p.state = 'sleep';
@@ -339,18 +339,18 @@ function useFurniture(s, x, y, obj, def) {
   if (use === 'tv') {
     if ((s.cool.tv || 0) > now) return toast(s, 'ดูทีวีไปแล้ว รอสักครู่', 'info');
     s.cool.tv = now + 20000; p.needs.fun = clamp(p.needs.fun + 20, 0, 100); p.needs.energy = clamp(p.needs.energy + 3, 0, 100);
-    toast(s, '📺 ดูทีวี ความสนุก +20', 'info'); sendMe(s, ['needs']); return;
+    toast(s, 'ดูทีวี ความสนุก +20', 'info'); sendMe(s, ['needs']); return;
   }
   if (use === 'read') {
     if ((s.cool.read || 0) > now) return toast(s, 'เพิ่งอ่านไป รอสักครู่', 'info');
     s.cool.read = now + 20000; p.needs.fun = clamp(p.needs.fun + 12, 0, 100);
-    toast(s, '📖 อ่านหนังสือ ความสนุก +12', 'info'); sendMe(s, ['needs']); return;
+    toast(s, 'อ่านหนังสือ ความสนุก +12', 'info'); sendMe(s, ['needs']); return;
   }
   if (use === 'fridge') {
     if (p.coins < 5) return err(s, 'ไม่มีเงินซื้อของกิน (5 เหรียญ)');
     if ((s.cool.fridge || 0) > now) return toast(s, 'เพิ่งกินไป รอสักครู่', 'info');
     s.cool.fridge = now + 15000; p.coins -= 5; p.needs.hunger = clamp(p.needs.hunger + 25, 0, 100);
-    toast(s, '🥪 หยิบของกินจากตู้เย็น ความหิว +25 (-5 เหรียญ)', 'info'); sendMe(s, ['needs', 'coins']); db.putPlayer(p); return;
+    toast(s, 'หยิบของกินจากตู้เย็น ความอิ่ม +25 (-5 เหรียญ)', 'info'); sendMe(s, ['needs', 'coins']); db.putPlayer(p); return;
   }
   if (use === 'cook') { send(s.ws, { t: 'open', panel: 'cook' }); return; }
 }
@@ -372,7 +372,7 @@ function useMisc(s, itemId) {
   if (!it || !it.use) return;
   if (!take(p, itemId, 1)) return;
   p.needs.fun = clamp(p.needs.fun + (it.use.f || 0), 0, 100);
-  toast(s, `${it.th} 🌸 ความสนุก +${it.use.f || 0}`, 'info');
+  toast(s, `${it.th} ความสนุก +${it.use.f || 0}`, 'info');
   sendMe(s, ['inv', 'needs']); db.putPlayer(p);
 }
 function craft(s, id, n, cooking) {
@@ -465,8 +465,8 @@ function friendAccept(s, id) {
   if (!tp.friends.includes(p.id)) tp.friends.push(p.id);
   db.putPlayer(p); db.putPlayer(tp);
   send(s.ws, { t: 'friends', list: friendList(p), reqs: reqList(p) });
-  toast(s, `คุณกับ ${tp.name} เป็นเพื่อนกันแล้ว 🎉`, 'get');
-  const ts = online.get(id); if (ts) { send(ts.ws, { t: 'friends', list: friendList(tp), reqs: reqList(tp) }); toast(ts, `${p.name} ตอบรับคำขอเป็นเพื่อนแล้ว 🎉`, 'get'); }
+  toast(s, `คุณกับ ${tp.name} เป็นเพื่อนกันแล้ว`, 'get');
+  const ts = online.get(id); if (ts) { send(ts.ws, { t: 'friends', list: friendList(tp), reqs: reqList(tp) }); toast(ts, `${p.name} ตอบรับคำขอเป็นเพื่อนแล้ว`, 'get'); }
 }
 function friendDecline(s, id) {
   const p = s.p; id = Number(id);
@@ -485,7 +485,7 @@ function visit(s, id) {
   if (!p.friends.includes(id)) return err(s, 'ต้องเป็นเพื่อนกันก่อน');
   if ((s.warpCool || 0) > Date.now()) return err(s, 'รอสักครู่ก่อนวาร์ปอีกครั้ง');
   const ts = online.get(id);
-  if (ts) { s.warpCool = Date.now() + 8000; warp(s, ts.p.x + 1, ts.p.y); toast(s, `วาร์ปไปหา ${ts.p.name} แล้ว`, 'info'); toast(ts, `${p.name} มาหาคุณ 👋`, 'info'); return; }
+  if (ts) { s.warpCool = Date.now() + 8000; warp(s, ts.p.x + 1, ts.p.y); toast(s, `วาร์ปไปหา ${ts.p.name} แล้ว`, 'info'); toast(ts, `${p.name} มาหาคุณ`, 'info'); return; }
   const tp = db.getPlayer(id);
   if (tp && tp.home) { s.warpCool = Date.now() + 8000; warp(s, tp.home.x + 1, tp.home.y + 1); toast(s, `${tp.name} ออฟไลน์ ไปที่บ้านของเขาแทน`, 'info'); return; }
   err(s, 'เพื่อนออฟไลน์และยังไม่มีบ้าน');
@@ -599,7 +599,7 @@ function handle(s, m) {
       if ((s.warpCool || 0) > Date.now()) return err(s, 'รอสักครู่ก่อนวาร์ปอีกครั้ง');
       s.warpCool = Date.now() + 8000; warp(s, p.home.x, p.home.y + 1); return;
     }
-    case 'sethome': { p.home = { x: Math.floor(p.x), y: Math.floor(p.y) }; db.putPlayer(p); sendMe(s, ['home']); toast(s, 'ตั้งจุดนี้เป็นบ้านแล้ว 🏠', 'get'); return; }
+    case 'sethome': { p.home = { x: Math.floor(p.x), y: Math.floor(p.y) }; db.putPlayer(p); sendMe(s, ['home']); toast(s, 'ตั้งจุดนี้เป็นบ้านแล้ว', 'get'); return; }
     case 'town': { if ((s.warpCool || 0) > Date.now()) return err(s, 'รอสักครู่ก่อนวาร์ปอีกครั้ง'); s.warpCool = Date.now() + 8000; warp(s, D.SPAWN.x, D.SPAWN.y + 2); return; }
     case 'wake': { p.state = null; return; }
     case 'mount': {
@@ -617,7 +617,7 @@ function handle(s, m) {
         if (!ok) return err(s, 'ต้องอยู่ริมน้ำหรือบนชายหาดถึงจะลงน้ำได้');
       }
       p.vehicle = it.vehicle; p.state = null; db.putPlayer(p); sendMe(s, ['vehicle']);
-      toast(s, `🚀 ขึ้น${v.th} (ความเร็ว x${v.speed}) กด V เพื่อลง`, 'get'); return;
+      toast(s, `ขึ้น${v.th} (ความเร็ว x${v.speed}) กด V เพื่อลง`, 'get'); return;
     }
     case 'sign_text': {
       const x = Math.floor(m.x), y = Math.floor(m.y); const o = W.getObj(x, y);
@@ -695,9 +695,9 @@ setInterval(() => {
     if (idle) continue;
     n.hunger = clamp(n.hunger - 0.035, 0, 100);
     n.hygiene = clamp(n.hygiene - 0.025, 0, 100);
-    if (p.state === 'sleep') { n.energy = clamp(n.energy + 2.5, 0, 100); if (n.energy >= 100) { p.state = null; sendMe(s, ['state']); toast(s, 'ตื่นแล้ว พลังงานเต็ม ☀️', 'info'); } }
+    if (p.state === 'sleep') { n.energy = clamp(n.energy + 2.5, 0, 100); if (n.energy >= 100) { p.state = null; sendMe(s, ['state']); toast(s, 'ตื่นแล้ว พลังงานเต็ม', 'info'); } }
     else if (p.state === 'sit') { n.energy = clamp(n.energy + 0.4, 0, 100); n.fun = clamp(n.fun + 0.3, 0, 100); }
-    else if (p.state === 'bath') { n.hygiene = clamp(n.hygiene + 4, 0, 100); if (n.hygiene >= 100) { p.state = null; sendMe(s, ['state']); toast(s, 'อาบน้ำเสร็จ สะอาดสดชื่น ✨', 'info'); } }
+    else if (p.state === 'bath') { n.hygiene = clamp(n.hygiene + 4, 0, 100); if (n.hygiene >= 100) { p.state = null; sendMe(s, ['state']); toast(s, 'อาบน้ำเสร็จ สะอาดสดชื่น', 'info'); } }
     else { n.energy = clamp(n.energy - (s.moving ? 0.05 : 0.02), 0, 100); n.fun = clamp(n.fun - 0.04, 0, 100); }
     // health: drains while starving/exhausted, regenerates when fed and rested
     const starving = n.hunger <= 0, exhausted = n.energy <= 0;

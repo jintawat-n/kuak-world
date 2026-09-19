@@ -20,8 +20,10 @@ window.UI = (() => {
   function icon(id) { return `<img src="${SP.iconURL(id)}" alt="">`; }
   function avatarCanvas(look) { const c = document.createElement('canvas'); c.width = 16; c.height = 24; const x = c.getContext('2d'); x.imageSmoothingEnabled = false; x.drawImage(SP.char(look || {}, 'down', 0), 0, 0); return c; }
 
-  function toast(text, kind = 'info', ms = 2800) {
-    const t = document.createElement('div'); t.className = 'toast ' + kind; t.textContent = text;
+  function toast(text, kind = 'info', ms = 2800, ic) {
+    const t = document.createElement('div'); t.className = 'toast ' + kind;
+    if (ic) { const im = document.createElement('img'); im.className = 'ui-ic'; im.src = SP.uiIcon(ic); im.alt = ''; t.appendChild(im); }
+    t.appendChild(document.createTextNode(text));
     const box = $('#toasts'); box.appendChild(t); while (box.children.length > 5) box.firstChild.remove();
     setTimeout(() => t.remove(), ms); return t;
   }
@@ -86,12 +88,12 @@ window.UI = (() => {
     const sel = G().sel;
     // ---- zone 1: tools (auto from inventory) ----
     const zt = document.createElement('div'); zt.className = 'zone';
-    zt.innerHTML = '<div class="zl">🛠️ เครื่องมือ <small>6-0 · Tab</small></div>';
+    zt.innerHTML = `<div class="zl"><img class="ui-ic zl-ic" src="${SP.iconURL('hammer')}" alt=""> เครื่องมือ <small>6-0 · Tab</small></div>`;
     const rt = document.createElement('div'); rt.className = 'slots';
     D.TOOL_KINDS.forEach((k, i) => {
       const id = D.bestTool(me.inv, k.kind);
       const sl = document.createElement('div'); sl.className = 'slot tool' + (sel.zone === 'tool' && sel.i === i ? ' active' : '') + (id ? '' : ' empty');
-      sl.innerHTML = (id ? icon(id) : `<span class="ph">${{ axe: '🪓', pickaxe: '⛏️', hoe: '🌱', can: '💧', hammer: '🔨' }[k.kind]}</span>`) + `<span class="k">${i === 4 ? 0 : i + 6}</span>` + (id && D.ITEMS[id].dmg ? '<span class="tier">★</span>' : '');
+      sl.innerHTML = (id ? icon(id) : `<span class="ph" style="background-image:url(${SP.iconURL(k.tiers[k.tiers.length - 1])})"></span>`) + `<span class="k">${i === 4 ? 0 : i + 6}</span>` + (id && D.ITEMS[id].dmg ? '<span class="tier">★</span>' : '');
       sl.title = id ? `${D.ITEMS[id].th}${D.ITEMS[id].dmg ? ' (แรง x' + D.ITEMS[id].dmg + ')' : ''}` : `ยังไม่มี${k.th} (คราฟต์หรือซื้อที่ร้าน)`;
       sl.onclick = () => Game.selectTool(i);
       rt.appendChild(sl);
@@ -100,7 +102,7 @@ window.UI = (() => {
     const div = document.createElement('div'); div.className = 'zdiv'; hb.appendChild(div);
     // ---- zone 2: items (player arranged) ----
     const zi = document.createElement('div'); zi.className = 'zone';
-    zi.innerHTML = '<div class="zl">🎒 อุปกรณ์ <small>1-5</small></div>';
+    zi.innerHTML = `<div class="zl"><img class="ui-ic zl-ic" src="${SP.uiIcon('bag')}" alt=""> อุปกรณ์ <small>1-5</small></div>`;
     const ri = document.createElement('div'); ri.className = 'slots';
     me.hotbar.forEach((id, i) => {
       const sl = document.createElement('div'); sl.className = 'slot' + (sel.zone === 'item' && sel.i === i ? ' active' : '');
@@ -114,13 +116,13 @@ window.UI = (() => {
     });
     zi.appendChild(ri); hb.appendChild(zi);
     const cur = Game.selectedId(); const it = D.ITEMS[cur];
-    $('#hotbarName').textContent = cur === 'hand' ? (sel.zone === 'tool' ? `✋ ยังไม่มี${D.TOOL_KINDS[sel.i].th} · ใช้มือเปล่า` : '✋ มือเปล่า (คลิกขวา/E เพื่อโต้ตอบ)') : `${it.th}${it.cat === 'tool' ? '' : ' x' + (me.inv[cur] || 0)}`;
+    $('#hotbarName').textContent = cur === 'hand' ? (sel.zone === 'tool' ? `ยังไม่มี${D.TOOL_KINDS[sel.i].th} · ใช้มือเปล่า` : 'มือเปล่า (คลิกขวา/E เพื่อโต้ตอบ)') : `${it.th}${it.cat === 'tool' ? '' : ' x' + (me.inv[cur] || 0)}`;
   }
   function refreshClock() {
     if (!G().me) return;
     const h = Game.hourOf(); const hh = Math.floor(h), mm = Math.floor((h - hh) * 60);
     $('#clock').textContent = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
-    $('#clockIcon').textContent = h >= 6 && h < 18 ? '☀️' : (h >= 18 && h < 20) || (h >= 5 && h < 6) ? '🌇' : '🌙';
+    const cic = h >= 6 && h < 18 ? 'sun' : (h >= 18 && h < 20) || (h >= 5 && h < 6) ? 'dusk' : 'moon'; const ce = $('#clockIcon'); if (ce.dataset.cur !== cic) { ce.dataset.cur = cic; ce.src = SP.uiIcon(cic); }
     $('#online').textContent = `· ${G().onlineN} ออนไลน์`;
   }
 
@@ -158,7 +160,7 @@ window.UI = (() => {
     if (locked) li.classList.add('locked');
     const extra = out.food ? ` <span class="muted">(หิว+${out.food.h})</span>` : out.vehicle ? ` <span class="muted">(เร็ว x${D.VEHICLES[out.vehicle].speed})</span>` : out.dmg ? ` <span class="muted">(แรง x${out.dmg})</span>` : '';
     li.innerHTML = `${icon(r.out)}<div class="info"><b>${out.th} x${r.n}${extra}</b>${ings}</div>`;
-    if (locked) { const l = document.createElement('span'); l.className = 'lock'; l.textContent = `🔒 Lv ${r.lv} · ${D.eraOf(r.lv).th}`; li.appendChild(l); return li; }
+    if (locked) { const l = document.createElement('span'); l.className = 'lock'; l.innerHTML = `<img class="ui-ic" src="${SP.uiIcon('lock')}" alt=""> Lv ${r.lv} · ${D.eraOf(r.lv).th}`; li.appendChild(l); return li; }
     const b1 = document.createElement('button'); b1.className = 'btn small' + (ok ? ' primary' : ''); b1.textContent = cooking ? 'ทำ' : 'คราฟต์'; b1.disabled = !ok; b1.onclick = () => Net.send({ t: cooking ? 'cook' : 'craft', id: r.id, n: 1 });
     const b5 = document.createElement('button'); b5.className = 'btn small'; b5.textContent = 'x5'; b5.disabled = !Object.entries(r.in).every(([k, q]) => (me.inv[k] || 0) >= q * 5); b5.onclick = () => Net.send({ t: cooking ? 'cook' : 'craft', id: r.id, n: 5 });
     li.appendChild(b1); li.appendChild(b5); return li;
@@ -173,9 +175,9 @@ window.UI = (() => {
       for (const [id, price] of Object.entries(D.SHOP.buy)) {
         const it = D.ITEMS[id]; const li = document.createElement('div'); li.className = 'li';
         const desc = it.crop ? `ปลูกได้: ${D.CROPS[it.crop].th} (${D.CROPS[it.crop].stageSec * 4 / 60 | 0} นาที)` : it.food ? 'อาหาร หิว+' + it.food.h : it.vehicle ? `พาหนะ เร็ว x${D.VEHICLES[it.vehicle].speed}` : it.cat === 'tool' ? 'เครื่องมือ' : 'วัตถุดิบ';
-        li.innerHTML = `${icon(id)}<div class="info"><b>${it.th}</b><span class="muted">${desc} · มี ${me.inv[id] || 0}</span></div><span class="price">🪙 ${price}</span>`;
+        li.innerHTML = `${icon(id)}<div class="info"><b>${it.th}</b><span class="muted">${desc} · มี ${me.inv[id] || 0}</span></div><span class="price"><img class="ui-ic" src="${SP.uiIcon('coin')}" alt=""> ${price}</span>`;
         const needLv = D.SHOP.lv[id] || 0;
-        if (needLv > (me.level || 1)) { li.classList.add('locked'); const lk = document.createElement('span'); lk.className = 'lock'; lk.textContent = `🔒 Lv ${needLv} · ${D.eraOf(needLv).th}`; li.appendChild(lk); l.appendChild(li); continue; }
+        if (needLv > (me.level || 1)) { li.classList.add('locked'); const lk = document.createElement('span'); lk.className = 'lock'; lk.innerHTML = `<img class="ui-ic" src="${SP.uiIcon('lock')}" alt=""> Lv ${needLv} · ${D.eraOf(needLv).th}`; li.appendChild(lk); l.appendChild(li); continue; }
         const q = document.createElement('input'); q.type = 'number'; q.className = 'qty'; q.value = 1; q.min = 1; q.max = 99;
         const b = document.createElement('button'); b.className = 'btn small primary'; b.textContent = 'ซื้อ'; b.onclick = () => Net.send({ t: 'buy', item: id, n: +q.value || 1 });
         if (it.cat === 'tool' && me.inv[id]) { b.disabled = true; b.textContent = 'มีแล้ว'; }
@@ -186,7 +188,7 @@ window.UI = (() => {
       if (!items.length) l.innerHTML = '<div class="muted">ไม่มีของที่ขายได้ (ผัก ผลไม้ อาหาร วัตถุดิบ)</div>';
       for (const [id, n] of items) {
         const it = D.ITEMS[id]; const price = D.SHOP.sell[id]; const li = document.createElement('div'); li.className = 'li';
-        li.innerHTML = `${icon(id)}<div class="info"><b>${it.th}</b><span class="muted">มี ${n}</span></div><span class="price">🪙 ${price}/ชิ้น</span>`;
+        li.innerHTML = `${icon(id)}<div class="info"><b>${it.th}</b><span class="muted">มี ${n}</span></div><span class="price"><img class="ui-ic" src="${SP.uiIcon('coin')}" alt=""> ${price}/ชิ้น</span>`;
         const q = document.createElement('input'); q.type = 'number'; q.className = 'qty'; q.value = n; q.min = 1; q.max = n;
         const b = document.createElement('button'); b.className = 'btn small'; b.textContent = 'ขาย'; b.onclick = () => Net.send({ t: 'sell', item: id, n: +q.value || 1 });
         li.appendChild(q); li.appendChild(b); l.appendChild(li);
@@ -200,20 +202,20 @@ window.UI = (() => {
     const av = avatarCanvas(f.look); av.style.width = '24px'; av.style.height = '36px'; row.appendChild(av);
     const nm = document.createElement('div'); nm.className = 'nm'; nm.innerHTML = `${esc(f.name)}<small>@${esc(f.username)}${f.online ? ' · ออนไลน์' : ''}</small>`; row.appendChild(nm);
     const on = document.createElement('span'); on.className = 'on' + (f.online ? ' yes' : ''); row.appendChild(on);
-    for (const [label, fn, cls] of actions) { const b = document.createElement('button'); b.className = 'btn small ' + (cls || ''); b.textContent = label; b.onclick = fn; row.appendChild(b); }
+    for (const [label, fn, cls, ic] of actions) { const b = document.createElement('button'); b.className = 'btn small ' + (cls || ''); b.innerHTML = (ic ? `<img class="ui-ic" src="${SP.uiIcon(ic)}" alt="">` : '') + esc(label); b.onclick = fn; row.appendChild(b); }
     return row;
   }
   function refreshFriends() {
     const fr = $('#friendResults'); fr.innerHTML = '';
     for (const u of searchResults) {
       const isF = isFriend(u.id);
-      fr.appendChild(friendRow(u, isF ? [['💬 แชต', () => { closePanels(); openChat(u.id); }]] : [['➕ เพิ่มเพื่อน', () => Net.send({ t: 'friend_req', name: u.username }), 'primary'], ['💬', () => { closePanels(); openChat(u.id); }]]));
+      fr.appendChild(friendRow(u, isF ? [['แชต', () => { closePanels(); openChat(u.id); }, '', 'chat']] : [['เพิ่มเพื่อน', () => Net.send({ t: 'friend_req', name: u.username }), 'primary', 'plus'], ['แชต', () => { closePanels(); openChat(u.id); }, '', 'chat']]));
     }
     const rq = $('#friendReqs'); rq.innerHTML = reqs.length ? '<h4>คำขอเป็นเพื่อน</h4>' : '';
-    for (const r of reqs) rq.appendChild(friendRow(r, [['✓ ตอบรับ', () => Net.send({ t: 'friend_accept', id: r.id }), 'primary'], ['✕', () => Net.send({ t: 'friend_decline', id: r.id })]]));
+    for (const r of reqs) rq.appendChild(friendRow(r, [['ตอบรับ', () => Net.send({ t: 'friend_accept', id: r.id }), 'primary', 'check'], ['✕', () => Net.send({ t: 'friend_decline', id: r.id })]]));
     const fl = $('#friendList'); fl.innerHTML = friends.length ? '' : '<div class="muted">ยังไม่มีเพื่อน ค้นหาชื่อผู้ใช้ด้านบนเพื่อเพิ่มเพื่อน</div>';
     const sorted = [...friends].sort((a, b) => (b.online - a.online) || a.name.localeCompare(b.name));
-    for (const f of sorted) fl.appendChild(friendRow(f, [['💬 แชต', () => { closePanels(); openChat(f.id); }], ['🚶 ไปหา', () => { Net.send({ t: 'visit', id: f.id }); closePanels(); }], ['✕', () => { if (confirm(`ลบ ${f.name} ออกจากเพื่อน?`)) Net.send({ t: 'friend_remove', id: f.id }); }, 'danger']]));
+    for (const f of sorted) fl.appendChild(friendRow(f, [['แชต', () => { closePanels(); openChat(f.id); }, '', 'chat'], ['ไปหา', () => { Net.send({ t: 'visit', id: f.id }); closePanels(); }, '', 'go'], ['✕', () => { if (confirm(`ลบ ${f.name} ออกจากเพื่อน?`)) Net.send({ t: 'friend_remove', id: f.id }); }, 'danger']]));
     const badge = $('#badgeFriends'); if (reqs.length) { badge.textContent = reqs.length; badge.classList.remove('hidden'); } else badge.classList.add('hidden');
   }
 
@@ -224,7 +226,7 @@ window.UI = (() => {
     const list = [...friends];
     for (const id of Object.keys(unread)) { const w = wins.get(+id); if (!list.some(f => f.id === +id) && w && w.info) list.push(w.info); }
     list.sort((a, b) => ((unread[b.id] || 0) - (unread[a.id] || 0)) || (b.online - a.online) || a.name.localeCompare(b.name));
-    if (!list.length) dl.innerHTML = '<div class="muted" style="padding:8px">ยังไม่มีเพื่อน กด 👥 เพื่อค้นหาและเพิ่มเพื่อน</div>';
+    if (!list.length) dl.innerHTML = '<div class="muted" style="padding:8px">ยังไม่มีเพื่อน กดปุ่ม "เพื่อน" (F) เพื่อค้นหาและเพิ่มเพื่อน</div>';
     for (const f of list) {
       const row = document.createElement('div'); row.className = 'fr';
       const av = document.createElement('div'); av.className = 'av'; av.appendChild(avatarCanvas(f.look)); const dot = document.createElement('span'); dot.className = 'dot' + (f.online ? ' on' : ''); av.appendChild(dot); row.appendChild(av);
@@ -242,7 +244,7 @@ window.UI = (() => {
     if (!w) {
       if (wins.size >= 3) closeChat(wins.keys().next().value);
       const el = document.createElement('div'); el.className = 'cw';
-      el.innerHTML = `<div class="cw-head"><div class="fr"><div class="av"></div><div class="nm"><span class="name">...</span><small class="stat"></small></div></div><button class="go" title="วาร์ปไปหา">🚶</button><button class="min" title="ย่อ">—</button><button class="cls" title="ปิด">✕</button></div><div class="cw-msgs"></div><form><input placeholder="Aa" maxlength="1000" autocomplete="off"><button type="submit">➤</button></form>`;
+      el.innerHTML = `<div class="cw-head"><div class="fr"><div class="av"></div><div class="nm"><span class="name">...</span><small class="stat"></small></div></div><button class="go" title="วาร์ปไปหา"><img class="ui-ic" src="${SP.uiIcon('go')}" alt=""></button><button class="min" title="ย่อ">—</button><button class="cls" title="ปิด">✕</button></div><div class="cw-msgs"></div><form><input placeholder="Aa" maxlength="1000" autocomplete="off"><button type="submit" title="ส่ง">➤</button></form>`;
       w = { id, el, msgs: [], info: friendInfo(id), loaded: false };
       wins.set(id, w);
       $('#chatWindows').appendChild(el);
@@ -265,7 +267,7 @@ window.UI = (() => {
     if (info) { w.info = info; const av = w.el.querySelector('.av'); av.innerHTML = ''; av.appendChild(avatarCanvas(info.look)); const d = document.createElement('span'); d.className = 'dot' + (info.online ? ' on' : ''); av.appendChild(d); w.el.querySelector('.name').textContent = info.name; w.el.querySelector('.stat').textContent = info.online ? 'ออนไลน์' : 'ออฟไลน์'; w.el.querySelector('.go').style.display = isFriend(w.id) ? '' : 'none'; }
     const box = w.el.querySelector('.cw-msgs'); box.innerHTML = '';
     const me = G().id;
-    if (!w.msgs.length) box.innerHTML = '<div class="muted" style="text-align:center;padding:12px">เริ่มบทสนทนาใหม่ 👋</div>';
+    if (!w.msgs.length) box.innerHTML = '<div class="muted" style="text-align:center;padding:12px">เริ่มบทสนทนาใหม่</div>';
     for (const m of w.msgs) { const b = document.createElement('div'); b.className = 'bub ' + (m.from === me ? 'me' : 'them'); b.innerHTML = `${esc(m.text)}<span class="ts">${fmtTime(m.ts)}</span>`; box.appendChild(b); }
     box.scrollTop = box.scrollHeight;
   }
@@ -277,7 +279,7 @@ window.UI = (() => {
     if (m.from !== me) {
       const focused = document.activeElement === w.el.querySelector('input') && !w.el.classList.contains('min');
       if (!focused) { unread[other] = (unread[other] || 0) + 1; refreshDock(); }
-      toast(`💬 ${(w.info && w.info.name) || 'ข้อความใหม่'}: ${m.text.slice(0, 40)}`, 'info', 2500);
+      toast(`${(w.info && w.info.name) || 'ข้อความใหม่'}: ${m.text.slice(0, 40)}`, 'info', 2500, 'chat');
     }
   }
   function onDmHistory(m) { const w = wins.get(m.with); if (!w) return; w.msgs = m.msgs; w.loaded = true; if (m.info) w.info = m.info; renderWin(w); }
@@ -285,7 +287,7 @@ window.UI = (() => {
   // ---------- world chat ----------
   function addWorld(m) {
     const arr = wcMsgs[m.scope] || wcMsgs.local; arr.push(m); if (arr.length > 200) arr.shift();
-    if (m.scope === wcScope) renderWorld(); else { const tab = $(`.wtab[data-scope="${m.scope}"]`); if (tab) tab.textContent = (m.scope === 'local' ? '📍 ใกล้ตัว' : '🌍 ทั่วโลก') + ' •'; }
+    if (m.scope === wcScope) renderWorld(); else { const tab = $(`.wtab[data-scope="${m.scope}"]`); if (tab) tab.querySelector('span').textContent = (m.scope === 'local' ? 'ใกล้ตัว' : 'ทั่วโลก') + ' •'; }
   }
   function renderWorld() {
     const box = $('#wcMsgs'); box.innerHTML = '';
@@ -314,7 +316,7 @@ window.UI = (() => {
     x.font = '16px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
     x.fillText('★', D.SPAWN.x * k, D.SPAWN.y * k);
     for (const f of G().friendsPos) mark(f.x, f.y, '#4ade80', 4);
-    if (G().me.home) x.fillText('🏠', G().me.home.x * k, G().me.home.y * k);
+    if (G().me.home) x.drawImage(SP.uiIconCanvas('home'), G().me.home.x * k - 8, G().me.home.y * k - 8, 16, 16);
     mark(G().pos.x, G().pos.y, '#ffffff', 5);
   }
 
@@ -328,8 +330,8 @@ window.UI = (() => {
       const div = document.createElement('div'); div.className = 'era' + (e === cur ? ' cur' : '') + (lv < e.lv ? ' locked' : '');
       const recipes = D.RECIPES.filter(r => r.lv >= e.lv && r.lv <= maxLv).sort((a, b) => a.lv - b.lv);
       const shopItems = Object.entries(D.SHOP.lv).filter(([k, l]) => l >= e.lv && l <= maxLv);
-      const items = recipes.map(r => `<span class="${lv >= r.lv ? 'got' : ''}" title="เลเวล ${r.lv}">${icon(r.out)}${D.ITEMS[r.out].th}<small class="muted">Lv${r.lv}</small></span>`).join('') + shopItems.map(([k, l]) => `<span class="${lv >= l ? 'got' : ''}" title="ร้านค้า เลเวล ${l}">${icon(k)}${D.ITEMS[k].th}<small class="muted">🏪Lv${l}</small></span>`).join('');
-      div.innerHTML = `<h4>${e.icon} ${e.th}<small>เลเวล ${e.lv}${next ? '-' + maxLv : '+'}${e === cur ? ' · คุณอยู่ที่นี่' : lv < e.lv ? ' · ยังไม่ปลดล็อก' : ' · ผ่านแล้ว'}</small></h4><p>${e.desc}</p><div class="items">${items}</div>`;
+      const items = recipes.map(r => `<span class="${lv >= r.lv ? 'got' : ''}" title="เลเวล ${r.lv}">${icon(r.out)}${D.ITEMS[r.out].th}<small class="muted">Lv${r.lv}</small></span>`).join('') + shopItems.map(([k, l]) => `<span class="${lv >= l ? 'got' : ''}" title="ร้านค้า เลเวล ${l}">${icon(k)}${D.ITEMS[k].th}<small class="muted">ร้าน Lv${l}</small></span>`).join('');
+      div.innerHTML = `<h4><img class="ui-ic" src="${SP.uiIcon(e.icon)}" alt=""> ${e.th}<small>เลเวล ${e.lv}${next ? '-' + maxLv : '+'}${e === cur ? ' · คุณอยู่ที่นี่' : lv < e.lv ? ' · ยังไม่ปลดล็อก' : ' · ผ่านแล้ว'}</small></h4><p>${e.desc}</p><div class="items">${items}</div>`;
       box.appendChild(div);
     });
   }
@@ -347,7 +349,7 @@ window.UI = (() => {
     if (fields.includes('needs') || fields.includes('hp')) refreshNeeds();
     if (fields.includes('coins')) refreshCoins();
     if (fields.includes('inv') || fields.includes('hotbar')) { refreshHotbar(); const p = currentPanel(); if (p) refreshPanel(p); }
-    if (fields.includes('home')) toast('🏠 บ้านของคุณอยู่ที่นี่แล้ว กด H เพื่อกลับบ้าน', 'info');
+    if (fields.includes('home')) toast('บ้านของคุณอยู่ที่นี่แล้ว กด H เพื่อกลับบ้าน', 'info', 2800, 'home');
     if (fields.includes('xp') || fields.includes('level')) refreshLevel();
     if (fields.includes('vehicle')) { refreshVehicle(); if (currentPanel() === 'pInv') refreshInv(); }
     if (fields.includes('look') || fields.includes('name')) refreshProfile();
@@ -356,6 +358,7 @@ window.UI = (() => {
   // ---------- init ----------
   function init(opts) {
     $$('img.ui-ic[data-ic]').forEach(im => { im.src = SP.uiIcon(im.dataset.ic); });
+    $$('img.ui-ic[data-item]').forEach(im => { im.src = SP.iconURL(im.dataset.item); });
     try { if (localStorage.getItem('kw_needs_collapsed') === '1') $('#hudNeeds').classList.add('collapsed'); } catch {}
     $('#needsToggle').onclick = () => { const c = $('#hudNeeds').classList.toggle('collapsed'); try { localStorage.setItem('kw_needs_collapsed', c ? '1' : '0'); } catch {} };
     $$('[data-close]').forEach(b => b.onclick = closePanels);
@@ -374,15 +377,15 @@ window.UI = (() => {
     $('#mHelp').onclick = () => openPanel('pHelp');
     $('#btnEra').onclick = () => toggle('pEra'); $('#lvlBox').onclick = () => toggle('pEra');
     Net.on('levelup', (m) => {
-      const t = toast(`🎉 LEVEL UP! เลเวล ${m.level} · โบนัส +${m.bonus} เหรียญ${m.unlocks.length ? ' · ปลดล็อก: ' + m.unlocks.join(', ') : ''}`, 'levelup', 7000);
+      const t = toast(`LEVEL UP! เลเวล ${m.level} · โบนัส +${m.bonus} เหรียญ${m.unlocks.length ? ' · ปลดล็อก: ' + m.unlocks.join(', ') : ''}`, 'levelup', 7000);
       Game.float(`LEVEL ${m.level}!`, '#ffe08a');
-      if (m.era) setTimeout(() => toast(`${m.eraIcon} เข้าสู่ ${m.era} แล้ว! เปิด 📜 เพื่อดูของใหม่`, 'levelup', 8000), 600);
+      if (m.era) setTimeout(() => toast(`เข้าสู่ ${m.era} แล้ว! กด L เพื่อดูของใหม่`, 'levelup', 8000, m.eraIcon), 600);
       if (currentPanel()) refreshPanel(currentPanel());
     });
     $('#mLogout').onclick = () => { closePanels(); opts.onLogout(); };
     $('#signSave').onclick = () => { if (signPos) Net.send({ t: 'sign_text', x: signPos.x, y: signPos.y, text: $('#signInput').value }); closePanels(); };
     // world chat
-    $$('.wtab').forEach(b => b.onclick = () => { wcScope = b.dataset.scope; $$('.wtab').forEach(t => t.classList.toggle('active', t === b)); b.textContent = b.dataset.scope === 'local' ? '📍 ใกล้ตัว' : '🌍 ทั่วโลก'; renderWorld(); });
+    $$('.wtab').forEach(b => b.onclick = () => { wcScope = b.dataset.scope; $$('.wtab').forEach(t => t.classList.toggle('active', t === b)); b.querySelector('span').textContent = b.dataset.scope === 'local' ? 'ใกล้ตัว' : 'ทั่วโลก'; renderWorld(); });
     $('#wcToggle').onclick = () => { const wc = $('#worldChat'); if (innerWidth <= 1440) { wc.classList.toggle('expanded'); wc.classList.remove('collapsed'); $('#wcToggle').textContent = wc.classList.contains('expanded') ? '▾' : '▴'; } else { wc.classList.toggle('collapsed'); $('#wcToggle').textContent = wc.classList.contains('collapsed') ? '▴' : '▾'; } };
     $('#wcForm').onsubmit = (e) => { e.preventDefault(); const inp = $('#wcInput'); const text = inp.value.trim(); if (text) Net.send({ t: 'chat', scope: wcScope, text }); inp.value = ''; inp.blur(); if (innerWidth <= 1440) $('#worldChat').classList.remove('expanded'); };
     $('#wcInput').addEventListener('keydown', (e) => { if (e.key === 'Escape') e.target.blur(); e.stopPropagation(); });
@@ -392,10 +395,10 @@ window.UI = (() => {
     // stop game hotkeys when typing inside modal inputs
     document.querySelectorAll('input, textarea').forEach(i => i.addEventListener('keydown', (e) => e.stopPropagation()));
     // net
-    Net.on('toast', (m) => toast(m.text, m.kind));
+    Net.on('toast', (m) => toast(m.text, m.kind, undefined, m.ic));
     Net.on('friends', (m) => { friends = m.list; reqs = m.reqs || reqs; refreshFriends(); refreshDock(); for (const w of wins.values()) renderWin(w); });
-    Net.on('friend_req', (m) => { reqs = m.reqs; refreshFriends(); refreshDock(); const t = toast(`👋 ${m.from.name} ส่งคำขอเป็นเพื่อน`, 'info', 6000); const b = document.createElement('button'); b.className = 'btn small primary'; b.textContent = 'ตอบรับ'; b.onclick = () => { Net.send({ t: 'friend_accept', id: m.from.id }); t.remove(); }; t.appendChild(b); });
-    Net.on('presence', (m) => { const f = friendInfo(m.id); if (f) { f.online = m.online; refreshFriends(); refreshDock(); const w = wins.get(m.id); if (w) renderWin(w); sysMsg(`${f.name} ${m.online ? 'ออนไลน์แล้ว 🟢' : 'ออฟไลน์ ⚪'}`); } });
+    Net.on('friend_req', (m) => { reqs = m.reqs; refreshFriends(); refreshDock(); const t = toast(`${m.from.name} ส่งคำขอเป็นเพื่อน`, 'info', 6000, 'friends'); const b = document.createElement('button'); b.className = 'btn small primary'; b.textContent = 'ตอบรับ'; b.onclick = () => { Net.send({ t: 'friend_accept', id: m.from.id }); t.remove(); }; t.appendChild(b); });
+    Net.on('presence', (m) => { const f = friendInfo(m.id); if (f) { f.online = m.online; refreshFriends(); refreshDock(); const w = wins.get(m.id); if (w) renderWin(w); sysMsg(`${f.name} ${m.online ? 'ออนไลน์แล้ว' : 'ออฟไลน์'}`); } });
     Net.on('dm', onDm); Net.on('dm_history', onDmHistory);
     Net.on('search_result', (m) => { searchResults = m.list; if (!m.list.length) toast(`ไม่พบผู้ใช้ "${m.q}"`, 'error'); refreshFriends(); });
     Net.on('chat', (m) => addWorld(m));
@@ -410,9 +413,9 @@ window.UI = (() => {
     for (const w of wins.values()) w.el.remove(); wins.clear();
     $('#game').classList.remove('hidden');
     refreshNeeds(); refreshCoins(); refreshProfile(); refreshHotbar(); refreshFriends(); refreshDock(); refreshClock(); renderWorld(); refreshLevel(); refreshVehicle();
-    if (!started) { started = true; sysMsg(`ยินดีต้อนรับ ${init.me.name}! กด Enter เพื่อแชต · Esc เมนู · ❓ วิธีเล่นอยู่ในเมนู`); }
+    if (!started) { started = true; sysMsg(`ยินดีต้อนรับ ${init.me.name}! กด Enter เพื่อแชต · Esc เมนู · "วิธีเล่น" อยู่ในเมนู`); }
     clearInterval(clockTimer); clockTimer = setInterval(refreshClock, 1000);
-    const total = Object.values(unread).reduce((a, b) => a + b, 0); if (total) toast(`💬 คุณมี ${total} ข้อความใหม่`, 'info');
+    const total = Object.values(unread).reduce((a, b) => a + b, 0); if (total) toast(`คุณมี ${total} ข้อความใหม่`, 'info', 2800, 'chat');
   }
   function stop() { $('#game').classList.add('hidden'); clearInterval(clockTimer); closePanels(); }
 

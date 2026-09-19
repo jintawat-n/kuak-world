@@ -40,7 +40,7 @@
         <canvas id="preview" width="160" height="240"></canvas>
         <div class="row center gap">
           <button class="btn small" id="prevRotate">↻ หมุน</button>
-          <button class="btn small" id="prevRandom">🎲 สุ่ม</button>
+          <button class="btn small" id="prevRandom"><img class="ui-ic" data-ic="dice" alt=""> สุ่ม</button>
         </div>
       </div>
       <div class="creator-opts">
@@ -90,13 +90,13 @@
 
   <!-- HUD top-right: clock, minimap -->
   <div id="hudRight">
-    <div class="panel clock"><span id="clockIcon">☀️</span> <b id="clock">08:00</b> <span class="muted" id="online">· 1 ออนไลน์</span></div>
+    <div class="panel clock"><img class="ui-ic" id="clockIcon" data-ic="sun" alt=""> <b id="clock">08:00</b> <span class="muted" id="online">· 1 ออนไลน์</span></div>
     <canvas id="minimap" width="160" height="160" class="panel"></canvas>
     <div class="hud-btns">
-      <button class="hbtn" id="btnEra" title="ยุคและการปลดล็อก (L)">📜</button>
-      <button class="hbtn" id="btnMap" title="แผนที่ (M)">🗺️</button>
-      <button class="hbtn" id="btnFriends" title="เพื่อน (F)">👥<span class="badge hidden" id="badgeFriends"></span></button>
-      <button class="hbtn" id="btnMenu" title="เมนู (Esc)">⚙️</button>
+      <button class="hbtn" id="btnEra" title="ยุคและการปลดล็อก (L)"><img class="ui-ic big" data-ic="scroll" alt=""></button>
+      <button class="hbtn" id="btnMap" title="แผนที่ (M)"><img class="ui-ic big" data-ic="map" alt=""></button>
+      <button class="hbtn" id="btnFriends" title="เพื่อน (F)"><img class="ui-ic big" data-ic="friends" alt=""><span class="badge hidden" id="badgeFriends"></span></button>
+      <button class="hbtn" id="btnMenu" title="เมนู (Esc)"><img class="ui-ic big" data-ic="gear" alt=""></button>
     </div>
   </div>
 
@@ -110,12 +110,12 @@
       <div id="hbZones"></div>
       <div class="zdiv"></div>
       <div class="zone menu">
-        <div class="zl">📋 เมนู</div>
+        <div class="zl"><img class="ui-ic zl-ic" data-ic="list" alt=""> เมนู</div>
         <div class="slots">
-          <button class="slot mbtn" id="btnInv" title="กระเป๋า (I)">🎒<span class="k">I</span></button>
-          <button class="slot mbtn" id="btnCraft" title="คราฟต์ (C)">🔨<span class="k">C</span></button>
-          <button class="slot mbtn" id="btnShop" title="ร้านค้า (B)">🏪<span class="k">B</span></button>
-          <button class="slot mbtn" id="btnHome" title="กลับบ้าน (H)">🏠<span class="k">H</span></button>
+          <button class="slot mbtn" id="btnInv" title="กระเป๋า (I)"><img class="ui-ic big" data-ic="bag" alt=""><span class="k">I</span></button>
+          <button class="slot mbtn" id="btnCraft" title="คราฟต์ (C)"><img class="ui-ic big" data-item="hammer" alt=""><span class="k">C</span></button>
+          <button class="slot mbtn" id="btnShop" title="ร้านค้า (B)"><img class="ui-ic big" data-ic="shop" alt=""><span class="k">B</span></button>
+          <button class="slot mbtn" id="btnHome" title="กลับบ้าน (H)"><img class="ui-ic big" data-ic="home" alt=""><span class="k">H</span></button>
         </div>
       </div>
     </div>
@@ -124,8 +124,8 @@
   <!-- bottom-left: world chat -->
   <div id="worldChat" class="panel">
     <div class="wc-head">
-      <button class="wtab active" data-scope="local">📍 ใกล้ตัว</button>
-      <button class="wtab" data-scope="global">🌍 ทั่วโลก</button>
+      <button class="wtab active" data-scope="local"><img class="ui-ic" data-ic="pin" alt=""> <span>ใกล้ตัว</span></button>
+      <button class="wtab" data-scope="global"><img class="ui-ic" data-ic="globe" alt=""> <span>ทั่วโลก</span></button>
       <button class="wc-toggle" id="wcToggle">▾</button>
     </div>
     <div class="wc-body">
@@ -138,7 +138,7 @@
   <div id="dock">
     <div id="chatWindows"></div>
     <div id="dockBar">
-      <button id="dockBtn">💬 แชต <span class="badge hidden" id="badgeDm"></span></button>
+      <button id="dockBtn"><img class="ui-ic" data-ic="chat" alt=""> แชต <span class="badge hidden" id="badgeDm"></span></button>
       <div id="dockList" class="hidden">
         <div class="dock-head">เพื่อน <span class="muted" id="dockOnline"></span></div>
         <div id="dockFriends"></div>
@@ -148,12 +148,12 @@
 
   <!-- touch controls -->
   <div id="joy" class="touch"><div id="joyKnob"></div></div>
-  <button id="btnAct" class="touch">✋</button>
+  <button id="btnAct" class="touch"><img class="ui-ic big" data-ic="hand" alt=""></button>
 
   <!-- ===== panels ===== -->
   <div id="modal" class="hidden">
     <div id="pInv" class="panel modal-panel hidden">
-      <div class="ph"><h3>🎒 กระเป๋า</h3><button class="x" data-close>✕</button></div>
+      <div class="ph"><h3><img class="ui-ic" data-ic="bag" alt=""> กระเป๋า</h3><button class="x" data-close>✕</button></div>
       <div class="tabs small" id="invTabs">
         <button class="tab active" data-cat="all">ทั้งหมด</button><button class="tab" data-cat="tool">เครื่องมือ</button><button class="tab" data-cat="mat">วัตถุดิบ</button><button class="tab" data-cat="food">อาหาร</button><button class="tab" data-cat="seed">เมล็ด</button><button class="tab" data-cat="build">ก่อสร้าง</button><button class="tab" data-cat="furn">เฟอร์นิเจอร์</button><button class="tab" data-cat="vehicle">พาหนะ</button>
       </div>
@@ -162,26 +162,26 @@
     </div>
 
     <div id="pCraft" class="panel modal-panel hidden">
-      <div class="ph"><h3>🔨 คราฟต์</h3><button class="x" data-close>✕</button></div>
+      <div class="ph"><h3><img class="ui-ic" data-item="hammer" alt=""> คราฟต์</h3><button class="x" data-close>✕</button></div>
       <div class="tabs small" id="craftTabs"><button class="tab active" data-cat="all">ทั้งหมด</button><button class="tab" data-cat="tool">เครื่องมือ</button><button class="tab" data-cat="build">ก่อสร้าง</button><button class="tab" data-cat="furn">เฟอร์นิเจอร์</button><button class="tab" data-cat="vehicle">พาหนะ</button></div>
       <div class="hint" id="craftHint"></div>
       <div id="craftList" class="list"></div>
     </div>
 
     <div id="pCook" class="panel modal-panel hidden">
-      <div class="ph"><h3>🍳 ทำอาหาร</h3><button class="x" data-close>✕</button></div>
+      <div class="ph"><h3><img class="ui-ic" data-ic="cook" alt=""> ทำอาหาร</h3><button class="x" data-close>✕</button></div>
       <div class="hint">ต้องอยู่ใกล้เตาหรือกองไฟ · อาหารปรุงสุกฟื้นฟูมากกว่าและขายได้ราคาดี</div>
       <div id="cookList" class="list"></div>
     </div>
 
     <div id="pShop" class="panel modal-panel hidden">
-      <div class="ph"><h3>🏪 ร้านค้า <span class="muted" id="shopCoins"></span></h3><button class="x" data-close>✕</button></div>
+      <div class="ph"><h3><img class="ui-ic" data-ic="shop" alt=""> ร้านค้า <span class="muted" id="shopCoins"></span></h3><button class="x" data-close>✕</button></div>
       <div class="tabs small" id="shopTabs"><button class="tab active" data-mode="buy">ซื้อ</button><button class="tab" data-mode="sell">ขาย</button></div>
       <div id="shopList" class="list"></div>
     </div>
 
     <div id="pFriends" class="panel modal-panel hidden">
-      <div class="ph"><h3>👥 เพื่อน</h3><button class="x" data-close>✕</button></div>
+      <div class="ph"><h3><img class="ui-ic" data-ic="friends" alt=""> เพื่อน</h3><button class="x" data-close>✕</button></div>
       <form id="friendSearch" class="row gap"><input id="friendQ" placeholder="ค้นหาชื่อผู้ใช้เพื่อเพิ่มเพื่อน" maxlength="16"><button class="btn small" type="submit">ค้นหา</button></form>
       <div id="friendResults"></div>
       <div id="friendReqs"></div>
@@ -190,48 +190,48 @@
     </div>
 
     <div id="pMap" class="panel modal-panel hidden">
-      <div class="ph"><h3>🗺️ แผนที่โลก</h3><button class="x" data-close>✕</button></div>
+      <div class="ph"><h3><img class="ui-ic" data-ic="map" alt=""> แผนที่โลก</h3><button class="x" data-close>✕</button></div>
       <canvas id="bigmap" width="512" height="512"></canvas>
-      <div class="hint">⬤ คุณ · 🏠 บ้าน · ★ เมือง · ● เพื่อน</div>
+      <div class="hint"><span class="dotc" style="background:#fff"></span> คุณ · <span class="dotc" style="background:#ff8c42"></span> บ้าน · ★ เมือง · <span class="dotc" style="background:#4ade80"></span> เพื่อน</div>
     </div>
 
     <div id="pMenu" class="panel modal-panel hidden">
-      <div class="ph"><h3>⚙️ เมนู</h3><button class="x" data-close>✕</button></div>
+      <div class="ph"><h3><img class="ui-ic" data-ic="gear" alt=""> เมนู</h3><button class="x" data-close>✕</button></div>
       <div class="menu-list">
-        <button class="btn" id="mSetHome">🏠 ตั้งจุดนี้เป็นบ้าน</button>
-        <button class="btn" id="mHome">🏃 กลับบ้าน</button>
-        <button class="btn" id="mTown">🏙️ ไปเมือง</button>
-        <button class="btn" id="mLook">🧑‍🎨 เปลี่ยนหน้าตา</button>
-        <div class="row gap"><button class="btn" id="mZoomOut">🔍−</button><button class="btn" id="mZoomIn">🔍+</button></div>
-        <button class="btn" id="mHelp">❓ วิธีเล่น</button>
+        <button class="btn" id="mSetHome"><img class="ui-ic" data-ic="home" alt=""> ตั้งจุดนี้เป็นบ้าน</button>
+        <button class="btn" id="mHome"><img class="ui-ic" data-ic="go" alt=""> กลับบ้าน</button>
+        <button class="btn" id="mTown"><img class="ui-ic" data-ic="era_modern" alt=""> ไปเมือง</button>
+        <button class="btn" id="mLook"><img class="ui-ic" data-ic="shirt" alt=""> เปลี่ยนหน้าตา</button>
+        <div class="row gap"><button class="btn" id="mZoomOut"><img class="ui-ic" data-ic="zoom" alt=""> ซูมออก −</button><button class="btn" id="mZoomIn"><img class="ui-ic" data-ic="zoom" alt=""> ซูมเข้า +</button></div>
+        <button class="btn" id="mHelp"><img class="ui-ic" data-ic="help" alt=""> วิธีเล่น</button>
         <button class="btn danger" id="mLogout">ออกจากระบบ</button>
       </div>
     </div>
 
     <div id="pEra" class="panel modal-panel hidden">
-      <div class="ph"><h3>📜 ยุคสมัยและการปลดล็อก</h3><button class="x" data-close>✕</button></div>
+      <div class="ph"><h3><img class="ui-ic" data-ic="scroll" alt=""> ยุคสมัยและการปลดล็อก</h3><button class="x" data-close>✕</button></div>
       <div class="hint">ได้ XP จากตัดไม้ ขุดหิน เก็บของป่า ปลูก/รดน้ำ/เก็บเกี่ยว คราฟต์ ทำอาหาร สร้างสิ่งของ และขายของ · เลเวลอัปได้โบนัสเหรียญ</div>
       <div id="eraList"></div>
     </div>
 
     <div id="pHelp" class="panel modal-panel hidden">
-      <div class="ph"><h3>❓ วิธีเล่น</h3><button class="x" data-close>✕</button></div>
+      <div class="ph"><h3><img class="ui-ic" data-ic="help" alt=""> วิธีเล่น</h3><button class="x" data-close>✕</button></div>
       <div class="help">
         <p><b>เดิน</b> WASD / ลูกศร · <b>วิ่ง</b> Shift · <b>ใช้ไอเทมที่เลือก</b> คลิกซ้ายบนช่อง หรือ Space (ช่องข้างหน้า)</p>
-        <p><b>ใช้มือเปล่า/โต้ตอบ</b> คลิกขวา หรือ E · <b>ช่องด่วน 2 โซน</b>: 🛠️ เครื่องมือ (6-0 หรือ Tab วน · ดึงจากกระเป๋าให้เอง รุ่นเหล็กใช้แทนอัตโนมัติ) | 🎒 อุปกรณ์ 1-5 (คลิกไอเทมในกระเป๋าเพื่อใส่ · คลิกขวาเอาออก) · ล้อเมาส์/Q/R วนทั้งสองโซน</p>
+        <p><b>ใช้มือเปล่า/โต้ตอบ</b> คลิกขวา หรือ E · <b>ช่องด่วน 2 โซน</b>: เครื่องมือ (6-0 หรือ Tab วน · ดึงจากกระเป๋าให้เอง รุ่นเหล็กใช้แทนอัตโนมัติ) | อุปกรณ์ 1-5 (คลิกไอเทมในกระเป๋าเพื่อใส่ · คลิกขวาเอาออก) · ล้อเมาส์/Q/R วนทั้งสองโซน</p>
         <p><b>เก็บทรัพยากร</b> ขวาน→ต้นไม้ · อีเต้อ→หิน · มือ→พุ่มเบอร์รี่/ดอกไม้/เห็ด</p>
         <p><b>ปลูกผัก</b> จอบพรวนดิน → เลือกเมล็ดแล้วคลิก → บัวรดน้ำ (โตเร็ว 2 เท่า) → โตเต็มที่แล้วคลิกเก็บเกี่ยว</p>
         <p><b>สร้างบ้าน</b> คราฟต์ผนัง/พื้น/ประตู/เฟอร์นิเจอร์ (C) แล้วเลือกวางบนพื้น · ค้อนใช้รื้อของที่เราวาง</p>
         <p><b>ชีวิตแบบ Sims</b> นอนบนเตียง (พลังงาน+ตั้งเป็นบ้าน) · เก้าอี้/ทีวี/หนังสือ (สนุก) · อ่างอาบน้ำ (สะอาด) · เตา (ทำอาหาร)</p>
         <p><b>เพื่อน</b> F ค้นหาชื่อผู้ใช้ → ส่งคำขอ → แชตส่วนตัว / วาร์ปไปหา · <b>แชตใกล้ตัว</b> Enter</p>
-        <p><b>เลเวลและยุค</b> ทำกิจกรรมได้ XP → เลเวลอัป → ปลดล็อกสูตรคราฟต์และของในร้าน ตั้งแต่ยุคหินจนถึงยุคปัจจุบัน (ดูที่ 📜)</p>
+        <p><b>เลเวลและยุค</b> ทำกิจกรรมได้ XP → เลเวลอัป → ปลดล็อกสูตรคราฟต์และของในร้าน ตั้งแต่ยุคหินจนถึงยุคปัจจุบัน (ดูที่ปุ่ม "ยุค" มุมขวาบน หรือกด L)</p>
         <p><b>ยานพาหนะ</b> คราฟต์/ซื้อแล้วกด "ขี่" ในกระเป๋า · แพ/เรือใช้ในน้ำ (ขึ้นจากชายหาด) · ม้า จักรยาน มอเตอร์ไซค์ รถยนต์ ใช้บนบก · เฮลิคอปเตอร์บินข้ามทุกอย่าง · กด V เพื่อลง</p>
         <p><b>ปุ่มลัด</b> I กระเป๋า · C คราฟต์ · B ร้านค้า · M แผนที่ · L ยุค · H กลับบ้าน · V ลงจากพาหนะ · Esc เมนู</p>
       </div>
     </div>
 
     <div id="pSign" class="panel modal-panel hidden">
-      <div class="ph"><h3>🪧 ป้าย</h3><button class="x" data-close>✕</button></div>
+      <div class="ph"><h3><img class="ui-ic" data-item="sign" alt=""> ป้าย</h3><button class="x" data-close>✕</button></div>
       <div id="signText" class="sign-text"></div>
       <div id="signEdit" class="hidden"><textarea id="signInput" maxlength="120" rows="3"></textarea><button class="btn primary" id="signSave">บันทึก</button></div>
     </div>

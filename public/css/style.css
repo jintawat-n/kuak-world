@@ -66,6 +66,16 @@ h2, h3, h4 { margin: 0 0 10px; } h4 { margin-top: 12px; font-size: 14px; color: 
 .hud { position: absolute; padding: 8px 10px; }
 #hudNeeds { top: 10px; left: 10px; width: 262px; padding: 8px 10px 9px; }
 .ui-ic { width: 16px; height: 16px; image-rendering: pixelated; flex-shrink: 0; vertical-align: middle; }
+.ui-ic.big { width: 26px; height: 26px; }
+.ui-ic.zl-ic { width: 12px; height: 12px; }
+.hbtn { display: inline-flex; align-items: center; justify-content: center; }
+.btn .ui-ic { margin-right: 4px; vertical-align: -3px; }
+h3 .ui-ic { width: 20px; height: 20px; vertical-align: -4px; margin-right: 2px; }
+.wtab, #dockBtn { display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
+.dotc { display: inline-block; width: 9px; height: 9px; border-radius: 50%; border: 1px solid #333; vertical-align: -1px; }
+.li .lock .ui-ic { width: 12px; height: 12px; vertical-align: -2px; }
+.toast .ui-ic { vertical-align: -3px; margin-right: 4px; }
+.slot .ph { display: inline-block; width: 30px; height: 30px; opacity: .35; filter: grayscale(1); background-size: contain; background-repeat: no-repeat; background-position: center; image-rendering: pixelated; }
 .ph-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .ph-av { width: 32px; height: 44px; border-radius: 8px; background: linear-gradient(#9fd8ff, #78c850 70%); border: 2px solid var(--wood); overflow: hidden; display: flex; align-items: flex-end; justify-content: center; flex-shrink: 0; }
 .ph-av canvas { width: 28px; height: 42px; image-rendering: pixelated; }
@@ -126,7 +136,6 @@ h2, h3, h4 { margin: 0 0 10px; } h4 { margin-top: 12px; font-size: 14px; color: 
 #hotbar .slots { display: flex; gap: 4px; }
 #hotbar .zdiv { width: 3px; align-self: stretch; margin: 2px 2px 0; border-radius: 2px; background: linear-gradient(#5e3a17, #c9a063 50%, #5e3a17); }
 .slot.tool { background: #e7d3a6; }
-.slot .ph { font-size: 20px; opacity: .35; filter: grayscale(1); }
 .slot .tier { position: absolute; top: -1px; right: 3px; font-size: 10px; color: #e07a1f; text-shadow: 0 0 2px #fff; }
 .cell.istool { background: #fff6e3; }
 .slot { position: relative; width: 48px; height: 48px; border-radius: 8px; background: var(--cream2); border: 2px solid var(--wood-d); cursor: pointer; display: flex; align-items: center; justify-content: center; }
