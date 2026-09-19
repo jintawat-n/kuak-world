@@ -342,16 +342,46 @@ window.UI = (() => {
     clearTimeout(skillTimer);
     if (sks.some(sk => (G().cds[sk.id] || 0) > now)) skillTimer = setTimeout(refreshSkills, 500);
   }
+  let classFam = null, classQ = '';
   function refreshClass() {
     const me = G().me; const box = $('#classList'); box.innerHTML = '';
-    $('#classHint').textContent = me.cls ? `อาชีพปัจจุบัน: ${D.CLASSES[me.cls].th} · เปลี่ยนอาชีพใช้ ${D.CLASS_CHANGE_COST} เหรียญ (คุณมี ${me.coins})` : 'เลือกอาชีพครั้งแรกฟรี · แต่ละอาชีพมีโบนัสติดตัวและสกิล 4 อัน (Z X C V)';
-    for (const [id, c] of Object.entries(D.CLASSES)) {
-      const div = document.createElement('div'); div.className = 'cls' + (me.cls === id ? ' cur' : '');
-      div.innerHTML = `<img class="ci" src="${SP.uiIcon(c.icon)}" alt=""><div class="cb"><h4>${c.th}${me.cls === id ? '<small>อาชีพของคุณ</small>' : ''}</h4><p>${c.desc}</p><ul>${c.passives.map(x => `<li>${x}</li>`).join('')}</ul><div class="sks">${c.skills.map((sk, i) => `<div class="sk"><img src="${SP.uiIcon(sk.icon)}" alt=""><div><b>${sk.th}</b>${sk.desc}<br><span class="muted">พลังงาน ${sk.energy} · คูลดาวน์ ${sk.cd} วิ${sk.range ? ' · ระยะ ' + sk.range : ''}</span></div><span class="key">${D.SKILL_KEYS[i].toUpperCase()}</span></div>`).join('')}</div></div>`;
-      const b = document.createElement('button'); b.className = 'btn ' + (me.cls === id ? '' : 'primary'); b.textContent = me.cls === id ? 'อาชีพปัจจุบัน' : me.cls ? `เปลี่ยน (${D.CLASS_CHANGE_COST})` : 'เลือกอาชีพนี้'; b.disabled = me.cls === id;
-      b.onclick = () => { if (me.cls && !confirm(`เปลี่ยนเป็น${c.th}? ใช้ ${D.CLASS_CHANGE_COST} เหรียญ`)) return; Net.send({ t: 'class', id }); };
-      div.appendChild(b); box.appendChild(div);
+    const lv = me.level || 1; const cur = me.cls ? D.CLASSES[me.cls] : null;
+    $('#classHint').textContent = cur ? `อาชีพปัจจุบัน: ${cur.th} (สาย${cur.family}) · เปลี่ยนอาชีพใช้ ${D.CLASS_CHANGE_COST} เหรียญ (คุณมี ${me.coins}) · มีทั้งหมด ${D.CLASS_LIST.length} อาชีพ` : `เลือกอาชีพครั้งแรกฟรี · มี ${D.CLASS_LIST.length} อาชีพ 10 สาย แต่ละอาชีพมีโบนัสติดตัวและสกิล 4 อัน (Z X C V) · อาชีพขั้นสูงต้องถึงเลเวลที่กำหนด`;
+    if (!classFam) classFam = cur ? cur.family : D.FAMILIES[0];
+    const tabs = document.createElement('div'); tabs.className = 'tabs small';
+    for (const f of D.FAMILIES) { const b = document.createElement('button'); b.className = 'tab' + (f === classFam ? ' active' : ''); const n = D.CLASS_LIST.filter(c => c.family === f).length; const open = D.CLASS_LIST.filter(c => c.family === f && lv >= c.lv).length; b.textContent = `${f} ${open}/${n}`; b.onclick = () => { classFam = f; refreshClass(); }; tabs.appendChild(b); }
+    box.appendChild(tabs);
+    const search = document.createElement('input'); search.placeholder = 'ค้นหาอาชีพหรือสกิล...'; search.value = classQ; search.style.cssText = 'width:100%;margin-bottom:8px'; search.oninput = () => { classQ = search.value.trim(); renderList(); };
+    box.appendChild(search);
+    const list = document.createElement('div'); box.appendChild(list);
+    function renderList() {
+      list.innerHTML = '';
+      const q = classQ.toLowerCase();
+      const items = D.CLASS_LIST.filter(c => q ? (c.th.includes(q) || c.desc.includes(q) || c.skills.some(sk => sk.th.includes(q) || sk.desc.includes(q))) : c.family === classFam).sort((a, b) => a.lv - b.lv);
+      for (const c of items) {
+        const locked = lv < c.lv;
+        const div = document.createElement('div'); div.className = 'cls' + (me.cls === c.id ? ' cur' : '') + (locked ? ' locked' : '');
+        div.innerHTML = `<img class="ci" src="${SP.uiIcon(c.icon)}" alt=""><div class="cb"><h4>${c.th}<small>สาย${c.family} · Lv ${c.lv}${me.cls === c.id ? ' · อาชีพของคุณ' : locked ? ' · ยังไม่ปลดล็อก' : ''}</small></h4><p>${c.desc}</p><ul>${c.passives.map(x => `<li>${x.th}</li>`).join('')}</ul><div class="sks">${c.skills.map((sk, i) => `<div class="sk"><img src="${SP.uiIcon(sk.icon)}" alt=""><div><b>${sk.th}</b>${sk.desc}<br><span class="muted">พลังงาน ${sk.energy} · คูลดาวน์ ${sk.cd} วิ${sk.range ? ' · ระยะ ' + sk.range : ''}</span></div><span class="key">${D.SKILL_KEYS[i].toUpperCase()}</span></div>`).join('')}</div></div>`;
+        const b = document.createElement('button'); b.className = 'btn ' + (me.cls === c.id || locked ? '' : 'primary');
+        b.innerHTML = me.cls === c.id ? 'อาชีพปัจจุบัน' : locked ? `<img class="ui-ic" src="${SP.uiIcon('lock')}" alt=""> Lv ${c.lv}` : me.cls ? `เปลี่ยน (${D.CLASS_CHANGE_COST})` : 'เลือกอาชีพนี้';
+        b.disabled = me.cls === c.id || locked;
+        b.onclick = () => { if (me.cls && !confirm(`เปลี่ยนเป็น${c.th}? ใช้ ${D.CLASS_CHANGE_COST} เหรียญ`)) return; Net.send({ t: 'class', id: c.id }); };
+        div.appendChild(b); list.appendChild(div);
+      }
+      if (!items.length) list.innerHTML = '<div class="muted">ไม่พบอาชีพ</div>';
     }
+    renderList();
+  }
+  // ---------- buffs ----------
+  const BUFF_TH = { speed: 'เร็ว', dmg: 'แรง', def: 'ป้องกัน', regen: 'ฟื้นเลือด', xp: 'XP', loot: 'ดรอป', shield: 'เกราะ', cook: 'ครัวพกพา', light: 'แสง', yield: 'ผลผลิต' };
+  let buffTimer = null;
+  function refreshBuffs() {
+    const box = $('#buffTag'); if (!box) return; const b = G().buffs || {}; const now = Date.now();
+    const list = Object.entries(b).filter(([k, v]) => v.until > now);
+    if (!list.length) { box.classList.add('hidden'); clearTimeout(buffTimer); return; }
+    box.classList.remove('hidden');
+    box.innerHTML = list.map(([k, v]) => `<span class="bf"><b>${BUFF_TH[k] || k}</b>${k === 'shield' ? ' ' + Math.round(v.val) : ''} <small>${Math.ceil((v.until - now) / 1000)}s</small></span>`).join('');
+    clearTimeout(buffTimer); buffTimer = setTimeout(refreshBuffs, 1000);
   }
   // ---------- NPC dialog ----------
   function showDialog(m) {
@@ -394,7 +424,7 @@ window.UI = (() => {
     if (fields.includes('coins')) refreshCoins();
     if (fields.includes('inv') || fields.includes('hotbar')) { refreshHotbar(); const p = currentPanel(); if (p) refreshPanel(p); }
     if (fields.includes('home')) toast('บ้านของคุณอยู่ที่นี่แล้ว กด H เพื่อกลับบ้าน', 'info', 2800, 'home');
-    if (fields.includes('xp') || fields.includes('level')) refreshLevel();
+    if (fields.includes('xp') || fields.includes('level')) { refreshLevel(); if (fields.includes('level') && currentPanel() === 'pClass') refreshClass(); }
     if (fields.includes('vehicle')) { refreshVehicle(); if (currentPanel() === 'pInv') refreshInv(); }
     if (fields.includes('cls')) { refreshSkills(); if (currentPanel() === 'pClass') refreshClass(); if (currentPanel() === 'pCraft') refreshCraft(); }
     if (fields.includes('needs')) refreshSkills();
@@ -451,6 +481,7 @@ window.UI = (() => {
     Net.on('sign', onSign);
     Net.on('open', (m) => { if (m.panel === 'shop') openPanel('pShop'); else if (m.panel === 'cook') openPanel('pCook'); else if (m.panel === 'class') openPanel('pClass'); });
     Net.on('dialog', showDialog);
+    Net.on('buffs', (m) => { G().buffs = m.b || {}; refreshBuffs(); });
     $('#dgClose').onclick = hideDialog;
 
     Net.on('faint', (m) => { toast(`คุณเป็นลม! ถูกพากลับ${m.where}${m.lost ? ` และทำเหรียญหาย ${m.lost}` : ''}`, 'error', 7000); Game.float('เป็นลม...', '#ff8080'); });
@@ -461,7 +492,8 @@ window.UI = (() => {
     searchResults = [];
     for (const w of wins.values()) w.el.remove(); wins.clear();
     $('#game').classList.remove('hidden');
-    refreshNeeds(); refreshCoins(); refreshProfile(); refreshHotbar(); refreshFriends(); refreshDock(); refreshClock(); renderWorld(); refreshLevel(); refreshVehicle(); refreshSkills(); hideDialog();
+    G().buffs = {}; classFam = null; classQ = '';
+    refreshNeeds(); refreshCoins(); refreshProfile(); refreshHotbar(); refreshFriends(); refreshDock(); refreshClock(); renderWorld(); refreshLevel(); refreshVehicle(); refreshSkills(); refreshBuffs(); hideDialog();
     if (!started) { started = true; sysMsg(`ยินดีต้อนรับ ${init.me.name}! กด Enter เพื่อแชต · Esc เมนู · "วิธีเล่น" อยู่ในเมนู`); }
     clearInterval(clockTimer); clockTimer = setInterval(refreshClock, 1000);
     const total = Object.values(unread).reduce((a, b) => a + b, 0); if (total) toast(`คุณมี ${total} ข้อความใหม่`, 'info', 2800, 'chat');

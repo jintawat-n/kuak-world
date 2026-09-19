@@ -421,6 +421,16 @@
     zz: ['................', '..wwww..........', '....ww..........', '..ww............', '..wwww..wwwww...', '..........ww....', '........ww......', '......ww........', '......wwwww.....', '................', '................', '................', '................', '................', '................', '................'],
     spark: ['................', '.......y........', '.......y........', '......yyy.......', '..y..yyyyy..y...', '...yyyyyyyyy....', '....yyyyyyy.....', '...yyyyyyyyy....', '..y..yyyyy..y...', '......yyy.......', '.......y........', '.......y........', '................', '................', '................', '................'],
     dice: ['................', '..bbbbbbbbbbbb..', '.bwwwwwwwwwwwwb.', '.bwzzwwwwwwzzwb.', '.bwzzwwwwwwzzwb.', '.bwwwwwwwwwwwwb.', '.bwwwwwzzwwwwwb.', '.bwwwwwzzwwwwwb.', '.bwwwwwwwwwwwwb.', '.bwzzwwwwwwzzwb.', '.bwzzwwwwwwzzwb.', '.bwwwwwwwwwwwwb.', '..bbbbbbbbbbbb..', '................', '................', '................'],
+    cls_knight: ['................', '.....gggggg.....', '....gGGGGGGg....', '....gGGGGGGg....', '....gGzGGzGg....', '....gGGGGGGg....', '.....gggggg.....', '....SSSSSSSS....', '...SSSSssSSSS...', '...SSSSssSSSS...', '...SSSSSSSSSS...', '...SSSSSSSSSS...', '................', '................', '................', '................'],
+    cls_hunter: ['................', '.....LLLLLL.....', '....LLLLLLLL....', '....LLLLLLLL....', '.....iiiiii.....', '.....iziizi.....', '.....iiiiii.....', '......iiii......', '....LLLLLLLL....', '...LLLLLLLLLL...', '...LLbbbbbbLL...', '...LLLLLLLLLL...', '...LLLLLLLLLL...', '................', '................', '................'],
+    cls_ninja: ['................', '.....zzzzzz.....', '....zzzzzzzz....', '....zzzzzzzz....', '....ziiiiiiz....', '....zizwwziz....', '....zzzzzzzz....', '.....zzzzzz.....', '....zzzzzzzz....', '...zzzrrrrzzz...', '...zzzzzzzzzz...', '...zzzzzzzzzz...', '...zzzzzzzzzz...', '................', '................', '................'],
+    cls_doctor: ['................', '.....wwwwww.....', '....wwwrrwww....', '....wwrrrrww....', '....wwwrrwww....', '.....iiiiii.....', '.....iziizi.....', '.....iiiiii.....', '......iiii......', '....wwwwwwww....', '...wwwwwwwwww...', '...wwwrrrrwww...', '...wwwwwwwwww...', '................', '................', '................'],
+    cls_monk: ['................', '.....iiiiii.....', '....iiiiiiii....', '....iiiiiiii....', '....iiiiiiii....', '....iziiiizi....', '....iiiiiiii....', '.....iiiiii.....', '....nnnnnnnn....', '...nnnnnnnnnn...', '...nnnnHHnnnn...', '...nnnnnnnnnn...', '...nnnnnnnnnn...', '................', '................', '................'],
+    cls_bard: ['................', '....vvvvvvv.....', '...vvvvvvvvvv...', '....vvvvvvvv....', '.....iiiiii.....', '.....iziizi.....', '.....iiiiii.....', '......iiii......', '....uuuuuuuu....', '...uuuuuuuuuu...', '...uubbbbbbuu...', '...uubbbbbbuu...', '...uuuuuuuuuu...', '................', '................', '................'],
+    cls_merchant: ['................', '.....yyyyyy.....', '....yyyyyyyy....', '....yyyyyyyy....', '.....iiiiii.....', '.....iziizi.....', '.....iiiiii.....', '......iiii......', '....HHHHHHHH....', '...HHHHHHHHHH...', '...HHyyyyyyHH...', '...HHHHHHHHHH...', '...HHHHHHHHHH...', '................', '................', '................'],
+    cls_chef: ['................', '....wwwwwwww....', '...wwwwwwwwww...', '....wwwwwwww....', '....wwwwwwww....', '.....iiiiii.....', '.....iziizi.....', '.....iiiiii.....', '......iiii......', '....wwwwwwww....', '...wwwwwwwwww...', '...wwwwwwwwww...', '...wwwwwwwwww...', '................', '................', '................'],
+    cls_explorer: ['................', '.....cccccc.....', '....cccccccc....', '..cccccccccccc..', '.....iiiiii.....', '.....iziizi.....', '.....iiiiii.....', '......iiii......', '....cccccccc....', '...cccccccccc...', '...ccbbbbbbcc...', '...cccccccccc...', '...cccccccccc...', '................', '................', '................'],
+    cls_miner: ['................', '.....yyyyyy.....', '....yyyyyyyy....', '....yyyhhyyy....', '....yyyyyyyy....', '.....iiiiii.....', '.....iziizi.....', '.....iiiiii.....', '......iiii......', '....nnnnnnnn....', '...nnnnnnnnnn...', '...nnnnnnnnnn...', '...nnnnnnnnnn...', '................', '................', '................'],
     cls_farmer: ['................', '......hhhh......', '.....hhhhhh.....', '...hhhhhhhhhh...', '..HHHHHHHHHHHH..', '.....iiiiii.....', '.....iziizi.....', '.....iiiiii.....', '......iiii......', '....LLLLLLLL....', '...LLLLLLLLLL...', '...LLLLLLLLLL...', '...LLLLLLLLLL...', '................', '................', '................'],
     cls_builder: ['................', '......yyyy......', '.....yyyyyy.....', '....yyyyyyyy....', '....YYYYYYYY....', '.....iiiiii.....', '.....iziizi.....', '.....iiiiii.....', '......iiii......', '....nnnnnnnn....', '...nnnnnnnnnn...', '...nnnnnnnnnn...', '...nnnnnnnnnn...', '................', '................', '................'],
     cls_wizard: ['................', '.......v........', '......vvv.......', '.....vvvvv......', '....vvvvvvv.....', '...vvvvvvvvv....', '..VVVVVVVVVVV...', '.....iiiiii.....', '.....iziizi.....', '.....iiiiii.....', '....vvvvvvvv....', '...vvvyvvvvvv...', '...vvvvvvyvvv...', '...vvvvvvvvvv...', '................', '................'],
@@ -448,9 +458,26 @@
     era_modern: ['................', '.....uu.........', '.....uu...gg....', '..gg.uu...gg....', '..gg.uu.uugg....', '..gguuuuuugg....', '..ggu.uuu.gg....', '..gguuuuuugguu..', '..ggu.uuu.gguu..', '..gguuuuuugguu..', '..ggu.uuu.gguu..', '..gguuuuuugguu..', '..gguuuuuugguu..', '................', '................', '................'],
     xp: ['................', '................', '.......aa.......', '......aaaa......', '.....aaaaaa.....', '....aaaaaaaa....', '...aaaaaaaaaa...', '.....aaaaaa.....', '.....aaaaaa.....', '.....aaaaaa.....', '.....aaaaaa.....', '.....aaaaaa.....', '................', '................', '................', '................'],
   };
-  function uiIconCanvas(name) {
-    const key = `uic_${name}`;
+  function hueShift(c, deg) {
+    const x = c.getContext('2d'); const img = x.getImageData(0, 0, c.width, c.height); const d = img.data;
+    for (let i = 0; i < d.length; i += 4) {
+      if (!d[i + 3]) continue;
+      let r = d[i] / 255, g = d[i + 1] / 255, b = d[i + 2] / 255;
+      const max = Math.max(r, g, b), min = Math.min(r, g, b); let h = 0, sat = 0; const l = (max + min) / 2;
+      if (max !== min) { const dd = max - min; sat = l > 0.5 ? dd / (2 - max - min) : dd / (max + min); if (max === r) h = (g - b) / dd + (g < b ? 6 : 0); else if (max === g) h = (b - r) / dd + 2; else h = (r - g) / dd + 4; h /= 6; }
+      if (sat < 0.15) continue; // keep grays/whites/blacks
+      h = (h + deg / 360) % 1;
+      const q = l < 0.5 ? l * (1 + sat) : l + sat - l * sat, pp = 2 * l - q;
+      const f = (t) => { t = ((t % 1) + 1) % 1; if (t < 1 / 6) return pp + (q - pp) * 6 * t; if (t < 1 / 2) return q; if (t < 2 / 3) return pp + (q - pp) * (2 / 3 - t) * 6; return pp; };
+      d[i] = Math.round(f(h + 1 / 3) * 255); d[i + 1] = Math.round(f(h) * 255); d[i + 2] = Math.round(f(h - 1 / 3) * 255);
+    }
+    x.putImageData(img, 0, 0); return c;
+  }
+  function uiIconCanvas(spec) {
+    const key = `uic_${spec}`;
     if (cache.has(key)) return cache.get(key);
+    const [name, vs] = String(spec).split(':'); const variant = Number(vs) || 0;
+    if (variant) { const base = uiIconCanvas(name); const c = mk(16, 16); ctxOf(c).drawImage(base, 0, 0); hueShift(c, variant * 62); cache.set(key, c); return c; }
     const c = mk(16, 16), x = ctxOf(c);
     if (UI_MAPS[name]) drawMap(x, UI_MAPS[name], { ...PAL, y: '#f2c94c', H: '#d9962b', h: '#ffe08a', r: '#e04848', R: '#a83232', w: '#ffffff', u: '#4b8fe0', U: '#2f5fb0', a: '#43aa8b', L: '#78c850', o: '#3b6b2a', g: '#7a7a80', G: '#3f3f45', n: '#f28c28', c: '#f3dfb5', b: '#8b5a2b', B: '#5e3a17', s: '#8a8a8a', S: '#b5b5b5', d: '#5f5f5f', i: '#f1c27d', z: '#1b1b1b', v: '#7b3fbf', V: '#4a2380', Y: '#c9a227', e: '#c9d1d9', f: '#ff6b35', F: '#ffb347', q: '#3a2a1a', x: '#c0392b', m: '#d62828' }, 16, 16);
     cache.set(key, c); return c;

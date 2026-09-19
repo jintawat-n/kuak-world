@@ -256,7 +256,7 @@ function tick(now) {
         if (!cd) { delete c.objs[pos]; touch(c); out.push({ t: 'obj', x, y, obj: null }); continue; }
         if (o.s < 4) {
           const wet = o.w && o.w > NOW;
-          o.p = (o.p || 0) + (wet ? 2 : 1);
+          o.p = (o.p || 0) + (wet ? 2 : 1) * (1 + (o.g || 0) / 100);
           const ns = Math.min(4, Math.floor(o.p / cd.stageSec));
           if (ns !== o.s) { o.s = ns; touch(c); out.push({ t: 'obj', x, y, obj: o }); }
           still = true;

@@ -302,45 +302,12 @@
 
   D.NEEDS = { hunger: 'ความหิว', energy: 'พลังงาน', fun: 'ความสนุก', hygiene: 'ความสะอาด' };
 
-  // ---------- classes (อาชีพ) & skills ----------
-  // skill: energy cost, cd (sec), range (tiles, 0 = self), target: 'tile' | 'mob' | 'self', icon: ui icon name
-  D.CLASSES = {
-    farmer: { th: 'ชาวไร่', icon: 'cls_farmer', desc: 'ปลูกเก่ง เก็บเกี่ยวได้มากกว่า เมล็ดถูกกว่า',
-      passives: ['เก็บเกี่ยวได้ +1 ทุกครั้ง', 'ซื้อเมล็ดลด 30%', 'พืชของคุณโตเร็วขึ้น 25%'],
-      skills: [
-        { id: 'sow',    th: 'หว่านเมล็ด',  desc: 'ปลูกเมล็ดที่เลือกอยู่ลงดินพรวน 3×3', energy: 6,  cd: 4,  range: 3, target: 'tile', icon: 'sk_sow' },
-        { id: 'water3', th: 'รดน้ำวงกว้าง', desc: 'รดน้ำ 3×3 รอบจุดที่เล็ง',           energy: 5,  cd: 4,  range: 3, target: 'tile', icon: 'sk_water' },
-        { id: 'reap',   th: 'เกี่ยวรวด',    desc: 'เก็บเกี่ยวผักสุกทั้งหมดในรัศมี 3',   energy: 8,  cd: 10, range: 0, target: 'self', icon: 'sk_reap' },
-        { id: 'vigor',  th: 'กำลังชาวไร่',  desc: 'ฟื้นพลังงาน +25 และอิ่ม +10',        energy: 0,  cd: 120, range: 0, target: 'self', icon: 'sk_vigor' },
-      ] },
-    builder: { th: 'ช่างก่อสร้าง', icon: 'cls_builder', desc: 'สร้างบ้านเร็ว วัตถุดิบเยอะ สูตรถูกลง',
-      passives: ['ได้ไม้/หิน +1 ทุกครั้งที่ตัดหรือขุด', 'สูตรคราฟต์ใช้วัตถุดิบลด 25%', 'ตัดไม้/ขุดหินแรงขึ้น +1'],
-      skills: [
-        { id: 'floor3',  th: 'ปูพื้น 3×3',   desc: 'ปูพื้นที่เลือกอยู่ 9 ช่องรอบจุดที่เล็ง',   energy: 6, cd: 3,  range: 3, target: 'tile', icon: 'sk_floor' },
-        { id: 'wall',    th: 'ก่อผนังยาว',   desc: 'วางผนังที่เลือกอยู่ 5 ช่องแนวที่หันหน้า', energy: 6, cd: 3,  range: 3, target: 'tile', icon: 'sk_wall' },
-        { id: 'demolish',th: 'รื้อถอน',      desc: 'รื้อสิ่งก่อสร้างของคุณ 3×3 คืนของเข้ากระเป๋า', energy: 4, cd: 3, range: 3, target: 'tile', icon: 'sk_demolish' },
-        { id: 'quarry',  th: 'ระเบิดหิน',    desc: 'ทุบหิน/ต้นไม้ทั้งหมดในรัศมี 2 ทันที',    energy: 15, cd: 30, range: 3, target: 'tile', icon: 'sk_quarry' },
-      ] },
-    wizard: { th: 'พ่อมด', icon: 'cls_wizard', desc: 'ใช้เวทมนตร์ ควบคุมธรรมชาติ และโจมตีด้วยลูกไฟ',
-      passives: ['พลังงานลดช้าลง 30%', 'ล่ามอนสเตอร์ได้แก่นเวทเพิ่ม', 'เลือดฟื้นเร็วขึ้น 2 เท่า'],
-      skills: [
-        { id: 'rain',  th: 'เรียกฝน',  desc: 'รดน้ำแปลงและผักทุกต้นในรัศมี 5 รอบตัว', energy: 15, cd: 45, range: 0, target: 'self', icon: 'sk_rain' },
-        { id: 'grow',  th: 'เร่งโต',   desc: 'ผักในรัศมี 3 รอบจุดที่เล็ง โตขึ้น 1 ระยะ', energy: 25, cd: 90, range: 5, target: 'tile', icon: 'sk_grow' },
-        { id: 'fire',  th: 'ลูกไฟ',    desc: 'ยิงลูกไฟใส่จุดที่เล็ง ทำ 25 ดาเมจในรัศมี 1.5', energy: 8, cd: 2.5, range: 6, target: 'tile', icon: 'sk_fire', dmg: 25 },
-        { id: 'blink', th: 'วาร์ป',    desc: 'เทเลพอร์ตไปจุดที่เล็ง (ไม่เกิน 6 ช่อง)',   energy: 8,  cd: 5,  range: 6, target: 'tile', icon: 'sk_blink' },
-      ] },
-    gunner: { th: 'มือปืน', icon: 'cls_gunner', desc: 'ยิงระยะไกล เคลื่อนที่ไว ล่ามอนสเตอร์ได้ของเพิ่ม',
-      passives: ['วิ่งเร็วขึ้น 15%', 'มอนสเตอร์ดรอปของ +1', 'โจมตีระยะประชิดแรงขึ้น +2'],
-      skills: [
-        { id: 'shoot', th: 'ยิง',        desc: 'ยิงเป้าหมายในระยะ 8 ทำ 14 ดาเมจ',       energy: 2,  cd: 0.6, range: 8, target: 'tile', icon: 'sk_shoot', dmg: 14 },
-        { id: 'snipe', th: 'ยิงแม่น',     desc: 'ยิงทำ 40 ดาเมจ ระยะ 10',                energy: 6,  cd: 6,   range: 10, target: 'tile', icon: 'sk_snipe', dmg: 40 },
-        { id: 'fan',   th: 'ยิงกระจาย',   desc: 'ยิงมอนสเตอร์ทุกตัวในรัศมี 4 รอบตัว ตัวละ 12', energy: 12, cd: 8, range: 0, target: 'self', icon: 'sk_fan', dmg: 12 },
-        { id: 'dash',  th: 'พุ่ง',        desc: 'พุ่งไปข้างหน้า 4 ช่อง',                 energy: 5,  cd: 4,   range: 0, target: 'self', icon: 'sk_dash' },
-      ] },
-  };
+  // ---------- classes (อาชีพ) are defined in classes.js (100 classes) ----------
   D.CLASS_CHANGE_COST = 200;
   D.SKILL_KEYS = ['z', 'x', 'c', 'v'];
-  D.recipeCost = (r, cls) => { if (cls !== 'builder') return r.in; const o = {}; for (const [k, q] of Object.entries(r.in)) o[k] = Math.max(1, Math.floor(q * 0.75)); return o; };
+  // passive lookup: sum of values for key k over the class's passives
+  D.passive = (cls, k) => { const c = cls && D.CLASSES && D.CLASSES[cls]; if (!c) return 0; let v = 0; for (const p of c.passives) if (p.k === k) v += p.v; return v; };
+  D.recipeCost = (r, cls) => { const pct = D.passive(cls, 'recipeDiscount'); if (!pct) return r.in; const o = {}; for (const [k, q] of Object.entries(r.in)) o[k] = Math.max(1, Math.floor(q * (1 - pct / 100))); return o; };
 
   // ---------- mobs ----------
   D.MOBS = {
@@ -363,6 +330,6 @@
   D.ITEM_SLOTS = 5;
   D.bestTool = (inv, kind) => { const k = D.TOOL_KINDS.find(t => t.kind === kind); if (!k) return null; for (const id of k.tiers) if (inv[id] > 0) return id; return null; };
 
-  if (typeof module !== 'undefined' && module.exports) module.exports = D;
+  if (typeof module !== 'undefined' && module.exports) { require('./classes.js')(D); module.exports = D; }
   else root.DEFS = D;
 })(typeof window !== 'undefined' ? window : globalThis);

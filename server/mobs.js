@@ -50,6 +50,7 @@ function tick(ctx) {
     if (nearest && nd < 40) m.seen = now;
     if ((!night && now - m.born > 5000 && Math.random() < 0.02) || now - m.seen > 40000) { mobs.delete(m.id); out.push({ t: 'mob_gone', id: m.id }); continue; }
     m.a = 0;
+    if (m.stun && m.stun > now) continue;
     const canTarget = nearest && nd <= 7 && !(nearest.p.vehicle && D.VEHICLES[nearest.p.vehicle].enclosed) && !(nearest.p.vehicle && D.VEHICLES[nearest.p.vehicle].fly) && !nearTown(nearest.p.x, nearest.p.y);
     if (canTarget) {
       const dx = nearest.p.x - m.x, dy = nearest.p.y - m.y;

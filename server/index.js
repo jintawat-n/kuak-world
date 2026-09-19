@@ -91,6 +91,7 @@ function has(p, item, n = 1) { return (p.inv[item] || 0) >= n; }
 function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
 function addXp(s, n) {
   const p = s.p; if (!n) return;
+  n = Math.round(n * (1 + D.passive(p.cls, 'xpBonus') / 100) * SK.buffVal(s, 'xp', 1));
   p.level = p.level || 1; p.xp = (p.xp || 0) + n;
   let leveled = false;
   while (p.xp >= D.xpNeed(p.level)) {
@@ -198,20 +199,22 @@ function doUse(s, m) {
     if (obj.t === 'bush') {
       if (!obj.b) return err(s, 'พุ่มนี้ยังไม่มีผล รอสักครู่');
       obj.b = 0; obj.p = 0;
-      const n = 1 + Math.floor(Math.random() * 3);
+      const n = 1 + Math.floor(Math.random() * 3) + D.passive(p.cls, 'gatherPlus') + SK.buffVal(s, 'yield', 0);
       give(p, 'berry', n); toast(s, `+${n} เบอร์รี่`, 'get');
       broadcastWorld(W.setObj(x, y, obj));
       p.needs.fun = clamp(p.needs.fun + 1, 0, 100);
       sendMe(s, ['inv']); addXp(s, D.XP.gather); db.putPlayer(p); return;
     }
-    obj.hp = (obj.hp || def.hp || 1) - (item.dmg || 1) - (p.cls === 'builder' && def.natural ? 1 : 0);
+    obj.hp = (obj.hp || def.hp || 1) - (item.dmg || 1) - (def.natural ? D.passive(p.cls, 'toolDmg') : 0);
     if (obj.hp > 0) { broadcastWorld({ t: 'hit', x, y, hp: obj.hp }); W.setObj(x, y, obj); return; }
     // removed → drops
     const got = [];
     for (const [it, mn, mx, ch] of def.drops || []) {
-      if (Math.random() > ch) continue;
+      let chance = ch; if (it === 'ore') chance += D.passive(p.cls, 'oreChance') / 100;
+      if (Math.random() > chance) continue;
       let n = mn + Math.floor(Math.random() * (mx - mn + 1));
-      if (p.cls === 'builder' && (it === 'wood' || it === 'stone')) n += 1;
+      if (it === 'wood') n += D.passive(p.cls, 'woodPlus'); if (it === 'stone') n += D.passive(p.cls, 'stonePlus');
+      if (def.tool === 'hand') n += D.passive(p.cls, 'gatherPlus') + SK.buffVal(s, 'yield', 0);
       const a = give(p, it, n);
       if (a > 0) got.push(`+${a} ${D.ITEMS[it].th}`);
       if (it === 'wood') p.stats.wood += a; if (it === 'stone') p.stats.stone += a;
@@ -228,7 +231,7 @@ function doUse(s, m) {
   if (item.crop) {
     if (!tdef.soil) return err(s, 'ต้องพรวนดินด้วยจอบก่อนปลูก');
     take(p, itemId, 1);
-    const crop = { t: 'crop', c: item.crop, s: 0, p: 0, w: tile === D.T.TILLED_WET ? Date.now() + 240000 : 0, o: p.id };
+    const crop = { t: 'crop', c: item.crop, s: 0, p: 0, w: tile === D.T.TILLED_WET ? Date.now() + 240000 : 0, o: p.id, g: D.passive(p.cls, 'cropSpeed') || 0 };
     broadcastWorld(W.setObj(x, y, crop));
     sendMe(s, ['inv']); addXp(s, D.XP.plant); db.putPlayer(p); return;
   }
@@ -305,7 +308,7 @@ function useCrop(s, x, y, obj, item) {
   }
   if (obj.s >= 4) {
     if (obj.o && obj.o !== p.id) return err(s, 'ผักของคนอื่น');
-    const n = cd.n[0] + Math.floor(Math.random() * (cd.n[1] - cd.n[0] + 1)) + (p.cls === 'farmer' ? 1 : 0);
+    const n = cd.n[0] + Math.floor(Math.random() * (cd.n[1] - cd.n[0] + 1)) + D.passive(p.cls, 'harvestPlus') + SK.buffVal(s, 'yield', 0);
     give(p, cd.yield, n); p.stats.harvest += n;
     toast(s, `เก็บเกี่ยว +${n} ${D.ITEMS[cd.yield].th}`, 'get');
     p.needs.fun = clamp(p.needs.fun + 2, 0, 100);
@@ -368,11 +371,12 @@ function eat(s, itemId) {
   const p = s.p; const it = D.ITEMS[itemId];
   if (!it || !it.food) return;
   if (!take(p, itemId, 1)) return err(s, 'ไม่มีไอเทมนี้');
-  p.needs.hunger = clamp(p.needs.hunger + (it.food.h || 0), 0, 100);
-  p.needs.energy = clamp(p.needs.energy + (it.food.e || 0), 0, 100);
-  p.needs.fun = clamp(p.needs.fun + (it.food.f || 0), 0, 100);
-  p.hp = clamp((p.hp == null ? 100 : p.hp) + Math.round((it.food.h || 0) * 0.3), 0, 100);
-  toast(s, `กิน${it.th} ความอิ่ม +${it.food.h || 0} เลือด +${Math.round((it.food.h || 0) * 0.3)}`, 'info');
+  const fm = 1 + D.passive(p.cls, 'foodBonus') / 100;
+  p.needs.hunger = clamp(p.needs.hunger + Math.round((it.food.h || 0) * fm), 0, 100);
+  p.needs.energy = clamp(p.needs.energy + Math.round((it.food.e || 0) * fm), 0, 100);
+  p.needs.fun = clamp(p.needs.fun + Math.round((it.food.f || 0) * fm), 0, 100);
+  p.hp = clamp((p.hp == null ? 100 : p.hp) + Math.round((it.food.h || 0) * 0.3 * fm), 0, 100);
+  toast(s, `กิน${it.th} ความอิ่ม +${Math.round((it.food.h || 0) * fm)} เลือด +${Math.round((it.food.h || 0) * 0.3 * fm)}`, 'info');
   s.anim = { a: 'eat', until: Date.now() + 600 };
   sendMe(s, ['inv', 'needs', 'hp']); db.putPlayer(p);
 }
@@ -392,7 +396,7 @@ function craft(s, id, n, cooking) {
   n = clamp(Number(n) || 1, 1, 50);
   if (!cooking && r.lv && !lvOk(s, r.lv)) return;
   if (cooking) {
-    let near = false;
+    let near = !!SK.buffVal(s, 'cook', 0);
     const px = Math.floor(p.x), py = Math.floor(p.y);
     for (let dy = -3; dy <= 3 && !near; dy++) for (let dx = -3; dx <= 3; dx++) { const o = W.getObj(px + dx, py + dy); if (o && (o.t === 'stove' || o.t === 'campfire')) { near = true; break; } }
     if (!near) return err(s, 'ต้องอยู่ใกล้เตาหรือกองไฟ');
@@ -400,7 +404,7 @@ function craft(s, id, n, cooking) {
   const cost = cooking ? r.in : D.recipeCost(r, p.cls);
   for (const [it, q] of Object.entries(cost)) if (!has(p, it, q * n)) return err(s, `วัตถุดิบไม่พอ: ต้องการ ${D.ITEMS[it].th} x${q * n}`);
   for (const [it, q] of Object.entries(cost)) take(p, it, q * n);
-  const got = give(p, r.out, r.n * n);
+  const got = give(p, r.out, r.n * n + (cooking ? D.passive(p.cls, 'cookPlus') * n : 0));
   toast(s, `${cooking ? 'ทำอาหาร' : 'คราฟต์'} +${got} ${D.ITEMS[r.out].th}`, 'get');
   if (cooking) p.needs.fun = clamp(p.needs.fun + 3, 0, 100);
   sendMe(s, ['inv', 'needs']); addXp(s, cooking ? D.XP.cook : D.XP.craft); db.putPlayer(p);
@@ -409,13 +413,15 @@ function shop(s, buy, itemId, n) {
   const p = s.p; n = clamp(Number(n) || 1, 1, 99);
   if (buy) {
     let price = D.SHOP.buy[itemId]; if (!price) return;
-    if (p.cls === 'farmer' && D.ITEMS[itemId].crop) price = Math.max(1, Math.round(price * 0.7));
+    if (D.ITEMS[itemId].crop) price = Math.max(1, Math.round(price * (1 - D.passive(p.cls, 'seedDiscount') / 100)));
+    price = Math.max(1, Math.round(price * (1 - D.passive(p.cls, 'buyDiscount') / 100)));
     if (D.SHOP.lv[itemId] && !lvOk(s, D.SHOP.lv[itemId])) return;
     if (p.coins < price * n) return err(s, 'เหรียญไม่พอ');
     const got = give(p, itemId, n); if (!got) return err(s, 'ช่องเก็บของเต็ม');
     p.coins -= price * got; toast(s, `ซื้อ ${D.ITEMS[itemId].th} x${got} (-${price * got} เหรียญ)`, 'get');
   } else {
-    const price = D.SHOP.sell[itemId]; if (!price) return;
+    let price = D.SHOP.sell[itemId]; if (!price) return;
+    price = Math.max(1, Math.round(price * (1 + D.passive(p.cls, 'sellBonus') / 100)));
     n = Math.min(n, p.inv[itemId] || 0); if (!n) return;
     take(p, itemId, n); p.coins += price * n; toast(s, `ขาย ${D.ITEMS[itemId].th} x${n} (+${price * n} เหรียญ)`, 'get');
     addXp(s, Math.min(n, 20) * D.XP.sell);
@@ -428,13 +434,14 @@ function mobKill(s, mob, x, y) {
   const p = s.p; const def = D.MOBS.slime.variants[mob.v];
   MOBS.kill(mob);
   broadcastNear(mob.x, mob.y, { t: 'mob_die', id: mob.id, x: mob.x, y: mob.y, v: mob.v });
-  const got = [];
+  const got = []; const lootP = D.passive(p.cls, 'mobLoot') + SK.buffVal(s, 'loot', 0);
   for (const [it, mn, mx, ch] of D.MOBS.slime.drops) {
-    let chance = ch; if (it === 'essence' && p.cls === 'wizard') chance = 0.4;
+    let chance = ch; if (it === 'essence') chance = Math.max(ch, D.passive(p.cls, 'essence') / 100);
     if (Math.random() > chance) continue;
-    let n = mn + Math.floor(Math.random() * (mx - mn + 1)); if (p.cls === 'gunner' && it === 'gel') n += 1;
+    let n = mn + Math.floor(Math.random() * (mx - mn + 1)); if (it === 'gel') n += lootP;
     const a = give(p, it, n); if (a) got.push(`+${a} ${D.ITEMS[it].th}`);
   }
+  const ck = D.passive(p.cls, 'coinKill'); if (ck) { p.coins += ck; got.push(`+${ck} เหรียญ`); sendMe(s, ['coins']); }
   toast(s, `กำจัด${def.th}แล้ว ${got.join('  ')}`, 'get');
   sendMe(s, ['inv']); addXp(s, def.xp); db.putPlayer(p);
 }
@@ -442,13 +449,16 @@ function melee(s, mob, itemId) {
   const p = s.p; const now = Date.now();
   if ((s.atkCool || 0) > now) return; s.atkCool = now + 450;
   if (Math.hypot(mob.x - p.x, mob.y - p.y) > 1.9) return err(s, 'เข้าใกล้อีกนิด');
-  const dmg = (D.MELEE[itemId] || 3) + (p.cls === 'gunner' ? 2 : 0);
+  const dmg = Math.round(((D.MELEE[itemId] || 3) + D.passive(p.cls, 'meleePlus')) * SK.buffVal(s, 'dmg', 1));
   s.anim = { a: D.ITEMS[itemId].tool || 'hand', until: now + 300, tx: Math.floor(mob.x), ty: Math.floor(mob.y) };
   broadcastNear(mob.x, mob.y, { t: 'mob_hit', id: mob.id, dmg, x: mob.x, y: mob.y });
   if (MOBS.damage(mob, dmg, p.x, p.y)) mobKill(s, mob);
 }
 function hurtPlayer(s, dmg, mob) {
   const p = s.p; if (!p || p.state === 'fainted') return;
+  dmg = Math.round(dmg * (1 - D.passive(p.cls, 'defense') / 100) * (1 - SK.buffVal(s, 'def', 0)));
+  const b = SK.buffs(s); if (b.shield && b.shield.val > 0) { const ab = Math.min(b.shield.val, dmg); b.shield.val -= ab; dmg -= ab; if (b.shield.val <= 0) delete b.shield; SK.sendBuffs(s); }
+  if (dmg <= 0) return;
   p.hp = clamp(p.hp - dmg, 0, 100); p.state = null;
   send(s.ws, { t: 'hurt', dmg, hp: p.hp, from: { x: mob.x, y: mob.y } });
   sendMe(s, ['hp']);
@@ -457,152 +467,12 @@ function hurtPlayer(s, dmg, mob) {
 function broadcastNear(x, y, msg) { const str = JSON.stringify(msg); for (const o of sessions) if (o.p && Math.abs(o.p.x - x) <= 40 && Math.abs(o.p.y - y) <= 30 && o.ws.readyState === 1) o.ws.send(str); }
 function fx(kind, x, y, extra) { broadcastNear(x, y, { t: 'fx', kind, x, y, ...(extra || {}) }); }
 
-function useSkill(s, m) {
-  const p = s.p; const now = Date.now();
-  if (!p.cls) return err(s, 'ยังไม่มีอาชีพ ไปหาครูเพชรในเมืองเพื่อเลือกอาชีพ');
-  const cls = D.CLASSES[p.cls]; const sk = cls.skills.find(k => k.id === m.id); if (!sk) return;
-  s.cool = s.cool || {};
-  if ((s.cool['sk_' + sk.id] || 0) > now) return;
-  if (p.needs.energy < sk.energy) return err(s, `พลังงานไม่พอ (ต้องการ ${sk.energy})`);
-  let tx = Math.floor(Number(m.x)), ty = Math.floor(Number(m.y));
-  if (sk.target === 'self') { tx = Math.floor(p.x); ty = Math.floor(p.y); }
-  if (!Number.isFinite(tx) || !Number.isFinite(ty)) return;
-  if (sk.range && Math.hypot(tx + 0.5 - p.x, ty + 0.5 - p.y) > sk.range + 0.5) return err(s, 'ไกลเกินระยะสกิล');
-  const px = Math.floor(p.x), py = Math.floor(p.y);
-  let ok = true, count = 0;
-  switch (sk.id) {
-    // ---- farmer ----
-    case 'sow': {
-      const seedId = m.item; const it = D.ITEMS[seedId];
-      if (!it || !it.crop) return err(s, 'เลือกเมล็ดในช่องอุปกรณ์ก่อน');
-      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
-        const x = tx + dx, y = ty + dy; if (!has(p, seedId)) break;
-        const t = W.getTile(x, y); if (!D.TILES[t].soil || W.getObj(x, y)) continue;
-        take(p, seedId, 1); count++;
-        broadcastWorld(W.setObj(x, y, { t: 'crop', c: it.crop, s: 0, p: 0, w: t === D.T.TILLED_WET ? now + 240000 : 0, o: p.id }));
-      }
-      if (!count) return err(s, 'ไม่มีดินพรวนว่างตรงนั้น');
-      addXp(s, count * D.XP.plant); sendMe(s, ['inv']); break;
-    }
-    case 'water3': {
-      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) count += waterTile(tx + dx, ty + dy, now) ? 1 : 0;
-      if (!count) return err(s, 'ไม่มีแปลงให้รดตรงนั้น');
-      fx('rain', tx, ty, { r: 1.5 }); addXp(s, count * D.XP.water); break;
-    }
-    case 'reap': {
-      for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) {
-        const o = W.getObj(px + dx, py + dy); if (!o || o.t !== 'crop' || o.s < 4 || (o.o && o.o !== p.id)) continue;
-        const cd = D.CROPS[o.c]; const n = cd.n[0] + Math.floor(Math.random() * (cd.n[1] - cd.n[0] + 1)) + 1;
-        give(p, cd.yield, n); p.stats.harvest += n; count++;
-        if (cd.regrow) { o.s = 2; o.p = 2 * cd.stageSec; broadcastWorld(W.setObj(px + dx, py + dy, o)); } else broadcastWorld(W.setObj(px + dx, py + dy, null));
-      }
-      if (!count) return err(s, 'ไม่มีผักสุกรอบตัว');
-      toast(s, `เกี่ยวรวด ${count} ต้น`, 'get'); addXp(s, count * D.XP.harvest); sendMe(s, ['inv']); break;
-    }
-    case 'vigor': p.needs.energy = clamp(p.needs.energy + 25, 0, 100); p.needs.hunger = clamp(p.needs.hunger + 10, 0, 100); fx('buff', px, py); sendMe(s, ['needs']); break;
-    // ---- builder ----
-    case 'floor3': {
-      const it = D.ITEMS[m.item]; if (!it || it.tile == null) return err(s, 'เลือกพื้นในช่องอุปกรณ์ก่อน');
-      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
-        const x = tx + dx, y = ty + dy; if (!has(p, m.item)) break;
-        const t = W.getTile(x, y), td = D.TILES[t]; const own = W.tileOwner(x, y);
-        if (!td.walk || t === D.T.SHALLOW || (own && own !== p.id) || nearTown(x, y) || t === it.tile || td.soil) continue;
-        take(p, m.item, 1); count++; if (td.floor) { const back = Object.entries(D.ITEMS).find(([k, v]) => v.tile === t); if (back) give(p, back[0], 1); }
-        broadcastWorld(W.setTile(x, y, it.tile, p.id));
-      }
-      if (!count) return err(s, 'ปูตรงนั้นไม่ได้');
-      p.stats.built += count; addXp(s, count * D.XP.build); sendMe(s, ['inv']); break;
-    }
-    case 'wall': {
-      const it = D.ITEMS[m.item]; if (!it || !it.obj || !D.OBJ[it.obj].build) return err(s, 'เลือกผนัง/รั้วในช่องอุปกรณ์ก่อน');
-      const horiz = p.d === 'left' || p.d === 'right';
-      for (let i = -2; i <= 2; i++) {
-        const x = horiz ? tx + i : tx, y = horiz ? ty : ty + i; if (!has(p, m.item)) break;
-        const t = W.getTile(x, y), td = D.TILES[t]; if (!td.walk || td.soil || W.getObj(x, y) || nearTown(x, y) || playerOnTile(x, y)) continue;
-        take(p, m.item, 1); count++; broadcastWorld(W.setObj(x, y, { t: it.obj, o: p.id }));
-      }
-      if (!count) return err(s, 'วางตรงนั้นไม่ได้');
-      p.stats.built += count; addXp(s, count * D.XP.build); sendMe(s, ['inv']); break;
-    }
-    case 'demolish': {
-      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
-        const x = tx + dx, y = ty + dy; const o = W.getObj(x, y);
-        if (o && o.o === p.id && D.OBJ[o.t] && D.OBJ[o.t].build) { for (const [it2, mn, mx] of D.OBJ[o.t].drops || []) give(p, it2, mn); broadcastWorld(W.setObj(x, y, null)); count++; }
-        const t = W.getTile(x, y); if (D.TILES[t].floor && W.tileOwner(x, y) === p.id) { const back = Object.entries(D.ITEMS).find(([k, v]) => v.tile === t); if (back) give(p, back[0], 1); broadcastWorld(W.setTile(x, y, D.T.DIRT, 0)); count++; }
-      }
-      if (!count) return err(s, 'ไม่มีสิ่งก่อสร้างของคุณตรงนั้น');
-      toast(s, `รื้อ ${count} ชิ้น คืนของเข้ากระเป๋าแล้ว`, 'info'); sendMe(s, ['inv']); break;
-    }
-    case 'quarry': {
-      for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
-        const x = tx + dx, y = ty + dy; const o = W.getObj(x, y); if (!o) continue; const def = D.OBJ[o.t];
-        if (!def || !def.natural || o.t === 'bush' || o.t === 'flower' || o.t === 'mushroom') continue;
-        for (const [it2, mn, mx, ch] of def.drops || []) { if (Math.random() > ch) continue; const n = mn + Math.floor(Math.random() * (mx - mn + 1)) + 1; give(p, it2, n); }
-        broadcastWorld(W.setObj(x, y, null)); count++;
-      }
-      if (!count) return err(s, 'ไม่มีหินหรือต้นไม้ตรงนั้น');
-      fx('boom', tx, ty, { r: 2.5 }); toast(s, `ระเบิด ${count} ชิ้น`, 'get'); addXp(s, count * D.XP.mine); sendMe(s, ['inv']); break;
-    }
-    // ---- wizard ----
-    case 'rain': {
-      for (let dy = -5; dy <= 5; dy++) for (let dx = -5; dx <= 5; dx++) if (dx * dx + dy * dy <= 26) count += waterTile(px + dx, py + dy, now) ? 1 : 0;
-      fx('rain', px, py, { r: 5 }); toast(s, `เรียกฝน รดน้ำ ${count} ช่อง`, 'get'); addXp(s, Math.min(count, 20) * D.XP.water); break;
-    }
-    case 'grow': {
-      for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) {
-        const x = tx + dx, y = ty + dy; const o = W.getObj(x, y); if (!o || o.t !== 'crop' || o.s >= 4) continue;
-        const cd = D.CROPS[o.c]; o.s += 1; o.p = Math.max(o.p || 0, o.s * cd.stageSec); count++; broadcastWorld(W.setObj(x, y, o));
-      }
-      if (!count) return err(s, 'ไม่มีผักที่ยังไม่โตตรงนั้น');
-      fx('grow', tx, ty, { r: 3 }); toast(s, `เร่งโต ${count} ต้น`, 'get'); addXp(s, Math.min(count, 10) * D.XP.plant); break;
-    }
-    case 'fire': {
-      fx('fire', tx, ty, { r: 1.5, from: { x: p.x, y: p.y } });
-      for (const mob of MOBS.within(tx + 0.5, ty + 0.5, 1.6)) { broadcastNear(mob.x, mob.y, { t: 'mob_hit', id: mob.id, dmg: sk.dmg, x: mob.x, y: mob.y }); if (MOBS.damage(mob, sk.dmg, p.x, p.y)) mobKill(s, mob); count++; }
-      break;
-    }
-    case 'blink': {
-      if (!W.passableFor(p.vehicle, tx, ty)) return err(s, 'วาร์ปไปตรงนั้นไม่ได้');
-      fx('blink', px, py); p.x = tx + 0.5; p.y = ty + 0.5; send(s.ws, { t: 'warp', x: p.x, y: p.y }); fx('blink', tx, ty); break;
-    }
-    // ---- gunner ----
-    case 'shoot': case 'snipe': {
-      const mob = MOBS.at(tx, ty) || MOBS.within(tx + 0.5, ty + 0.5, 1.0)[0];
-      fx('shot', mob ? mob.x : tx + 0.5, mob ? mob.y : ty + 0.5, { from: { x: p.x, y: p.y }, big: sk.id === 'snipe' });
-      s.anim = { a: 'gun', until: now + 250, tx, ty };
-      if (mob) { broadcastNear(mob.x, mob.y, { t: 'mob_hit', id: mob.id, dmg: sk.dmg, x: mob.x, y: mob.y }); if (MOBS.damage(mob, sk.dmg, p.x, p.y)) mobKill(s, mob); }
-      break;
-    }
-    case 'fan': {
-      fx('fan', px, py, { r: 4 });
-      for (const mob of MOBS.within(p.x, p.y, 4.2)) { broadcastNear(mob.x, mob.y, { t: 'mob_hit', id: mob.id, dmg: sk.dmg, x: mob.x, y: mob.y }); if (MOBS.damage(mob, sk.dmg, p.x, p.y)) mobKill(s, mob); count++; }
-      break;
-    }
-    case 'dash': {
-      const dx = p.d === 'left' ? -1 : p.d === 'right' ? 1 : 0, dy = p.d === 'up' ? -1 : p.d === 'down' ? 1 : 0;
-      let nx = p.x, ny = p.y;
-      for (let i = 0; i < 8; i++) { const cx = nx + dx * 0.5, cy = ny + dy * 0.5; if (!W.passableFor(p.vehicle, Math.floor(cx), Math.floor(cy))) break; nx = cx; ny = cy; }
-      fx('dash', px, py, { to: { x: nx, y: ny } }); p.x = nx; p.y = ny; send(s.ws, { t: 'warp', x: p.x, y: p.y }); break;
-    }
-    default: ok = false;
-  }
-  if (!ok) return;
-  s.cool['sk_' + sk.id] = now + sk.cd * 1000;
-  p.needs.energy = clamp(p.needs.energy - sk.energy, 0, 100);
-  send(s.ws, { t: 'skill_ok', id: sk.id, until: s.cool['sk_' + sk.id] });
-  sendMe(s, ['needs']);
-}
-function waterTile(x, y, now) {
-  const t = W.getTile(x, y); const o = W.getObj(x, y);
-  if (o && o.t === 'crop') { o.w = now + 240000; W.setWet(x, y, 0); broadcastWorld(W.setObj(x, y, o)); if (t !== D.T.TILLED_WET) broadcastWorld(W.setTile(x, y, D.T.TILLED_WET, W.tileOwner(x, y))); return true; }
-  if (t === D.T.TILLED) { W.setWet(x, y, now + 240000); broadcastWorld(W.setTile(x, y, D.T.TILLED_WET, W.tileOwner(x, y))); return true; }
-  return false;
-}
 function chooseClass(s, id) {
   const p = s.p; if (!D.CLASSES[id]) return;
   if (p.cls === id) return toast(s, `คุณเป็น${D.CLASSES[id].th}อยู่แล้ว`, 'info');
+  if ((p.level || 1) < D.CLASSES[id].lv) return err(s, `${D.CLASSES[id].th} ต้องถึงเลเวล ${D.CLASSES[id].lv}`);
   if (p.cls) { if (p.coins < D.CLASS_CHANGE_COST) return err(s, `เปลี่ยนอาชีพต้องใช้ ${D.CLASS_CHANGE_COST} เหรียญ`); p.coins -= D.CLASS_CHANGE_COST; }
-  p.cls = id; db.putPlayer(p); for (const o of sessions) o.known.delete(p.id);
+  p.cls = id; s.cool = {}; s.buffs = {}; SK.sendBuffs(s); db.putPlayer(p); for (const o of sessions) o.known.delete(p.id);
   toast(s, `คุณเป็น${D.CLASSES[id].th}แล้ว สกิลอยู่ที่ปุ่ม Z X C V`, 'get');
   sendMe(s, ['cls', 'coins']);
 }
@@ -618,6 +488,8 @@ function dialogChoice(s, m) {
   }
 }
 
+const SK = require('./skills')({ give, take, has, clamp, toast, err, send, sendMe, broadcastWorld, broadcastNear, addXp, warp, nearTown, playerOnTile, mobKill, sessions, online, db });
+
 // ---------------- chat & friends ----------------
 function chat(s, m) {
   const p = s.p; const now = Date.now();
@@ -631,6 +503,7 @@ function chat(s, m) {
     if (cmd === 'spawn') { const mob = MOBS.spawnNear(p.x, p.y, p.level); return toast(s, mob ? 'เกิดสไลม์แล้ว' : 'หาที่เกิดไม่ได้ (ต้องอยู่นอกเมืองบนหญ้า)', 'info'); }
     if (cmd === 'give') { const [it, n] = [arg, Number(text.split(/\s+/)[2]) || 1]; give(p, it, n); sendMe(s, ['inv']); return; }
     if (cmd === 'lv') { p.level = Number(arg) || 1; sendMe(s, ['level']); return; }
+    if (cmd === 'coins') { p.coins += Number(arg) || 0; sendMe(s, ['coins']); return; }
     if (cmd === 'tp') { const [x, y] = text.split(/\s+/).slice(1).map(Number); if (Number.isFinite(x) && Number.isFinite(y)) warp(s, x, y); return; }
     if (cmd === 'full') { p.needs = { hunger: 100, energy: 100, fun: 100, hygiene: 100 }; p.hp = 100; sendMe(s, ['needs', 'hp']); return; }
   }
@@ -811,13 +684,13 @@ function handle(s, m) {
     case 'visit': return visit(s, m.id);
     case 'home': {
       if (!p.home) return err(s, 'ยังไม่มีบ้าน: วางเตียงแล้วนอน หรือกด "ตั้งจุดนี้เป็นบ้าน"');
-      if ((s.warpCool || 0) > Date.now()) return err(s, 'รอสักครู่ก่อนวาร์ปอีกครั้ง');
+      if ((s.warpCool || 0) > Date.now() && !D.passive(p.cls, 'homeCd')) return err(s, 'รอสักครู่ก่อนวาร์ปอีกครั้ง');
       s.warpCool = Date.now() + 8000; warp(s, p.home.x, p.home.y + 1); return;
     }
     case 'sethome': { p.home = { x: Math.floor(p.x), y: Math.floor(p.y) }; db.putPlayer(p); sendMe(s, ['home']); toast(s, 'ตั้งจุดนี้เป็นบ้านแล้ว', 'get'); return; }
-    case 'town': { if ((s.warpCool || 0) > Date.now()) return err(s, 'รอสักครู่ก่อนวาร์ปอีกครั้ง'); s.warpCool = Date.now() + 8000; warp(s, D.SPAWN.x, D.SPAWN.y + 2); return; }
+    case 'town': { if ((s.warpCool || 0) > Date.now() && !D.passive(p.cls, 'homeCd')) return err(s, 'รอสักครู่ก่อนวาร์ปอีกครั้ง'); s.warpCool = Date.now() + 8000; warp(s, D.SPAWN.x, D.SPAWN.y + 2); return; }
     case 'wake': { p.state = null; return; }
-    case 'skill': return useSkill(s, m);
+    case 'skill': return SK.useSkill(s, m);
     case 'attack': { const mob = MOBS.mobs.get(Number(m.id)); if (mob) melee(s, mob, D.ITEMS[m.item] ? String(m.item) : 'hand'); return; }
     case 'talk': { const npc = NPC.NPCS.find(n => n.id === m.npc); if (!npc || Math.abs(npc.x - p.x) > 4 || Math.abs(npc.y - p.y) > 4) return; return send(s.ws, { t: 'dialog', npc: npc.id, ...NPC.dialog(npc, p) }); }
     case 'dialog': return dialogChoice(s, m);
@@ -876,6 +749,7 @@ function enter(s, p) {
     global: db.chat.slice(-60), online: online.size,
   });
   notifyFriends(p, { t: 'presence', id: p.id, online: true });
+  s.buffs = {}; s.cool = {};
   db.putPlayer(p);
 }
 
@@ -919,22 +793,23 @@ setInterval(() => {
   db.world.time = (db.world.time + 1) % D.DAY_SECONDS;
   const updates = W.tick(Date.now());
   for (const u of updates) broadcastWorld(u);
+  SK.tick(Date.now());
   for (const s of sessions) {
     if (!s.p) continue;
     const p = s.p; const n = p.needs;
     // idle (no input for 2 min) and not in a restoring state -> needs stop draining
     const idle = !p.state && Date.now() - (s.lastActive || 0) > 120000;
     if (idle) continue;
-    n.hunger = clamp(n.hunger - 0.035, 0, 100);
-    n.hygiene = clamp(n.hygiene - 0.025, 0, 100);
+    n.hunger = clamp(n.hunger - 0.035 * (1 - D.passive(p.cls, 'hungerSave') / 100), 0, 100);
+    n.hygiene = clamp(n.hygiene - 0.025 * (1 - D.passive(p.cls, 'hygieneSave') / 100), 0, 100);
     if (p.state === 'sleep') { n.energy = clamp(n.energy + 2.5, 0, 100); if (n.energy >= 100) { p.state = null; sendMe(s, ['state']); toast(s, 'ตื่นแล้ว พลังงานเต็ม', 'info'); } }
     else if (p.state === 'sit') { n.energy = clamp(n.energy + 0.4, 0, 100); n.fun = clamp(n.fun + 0.3, 0, 100); }
     else if (p.state === 'bath') { n.hygiene = clamp(n.hygiene + 4, 0, 100); if (n.hygiene >= 100) { p.state = null; sendMe(s, ['state']); toast(s, 'อาบน้ำเสร็จ สะอาดสดชื่น', 'info'); } }
-    else { n.energy = clamp(n.energy - (s.moving ? 0.05 : 0.02) * (p.cls === 'wizard' ? 0.7 : 1), 0, 100); n.fun = clamp(n.fun - 0.04, 0, 100); }
+    else { n.energy = clamp(n.energy - (s.moving ? 0.05 : 0.02) * (1 - D.passive(p.cls, 'energySave') / 100), 0, 100); n.fun = clamp(n.fun - 0.04 * (1 - D.passive(p.cls, 'funSave') / 100), 0, 100); }
     // health: drains while starving/exhausted, regenerates when fed and rested
     const starving = n.hunger <= 0, exhausted = n.energy <= 0;
     if (starving || exhausted) p.hp = clamp(p.hp - (starving && exhausted ? 0.3 : 0.15), 0, 100);
-    else if (n.hunger > 30 && n.energy > 30) p.hp = clamp(p.hp + (p.state === 'sleep' ? 0.5 : 0.1) * (p.cls === 'wizard' ? 2 : 1), 0, 100);
+    else if (n.hunger > 30 && n.energy > 30) p.hp = clamp(p.hp + (p.state === 'sleep' ? 0.5 : 0.1) * (D.passive(p.cls, 'hpRegen') || 1), 0, 100);
     if (p.hp <= 0) faint(s);
     if (tickN % 5 === 0) { sendMe(s, ['needs', 'hp']); db.putPlayer(p); }
   }
@@ -953,7 +828,7 @@ setInterval(() => {
 
 function faint(s) {
   const p = s.p;
-  const lost = Math.min(100, Math.floor(p.coins * 0.1)); p.coins -= lost;
+  const lost = Math.min(100, Math.floor(p.coins * 0.1 * (1 - Math.min(100, D.passive(p.cls, 'faintSave')) / 100))); p.coins -= lost;
   p.hp = 50; p.needs.hunger = Math.max(p.needs.hunger, 30); p.needs.energy = Math.max(p.needs.energy, 50); p.state = null;
   const where = p.home ? 'บ้าน' : 'เมือง';
   if (p.home) warp(s, p.home.x, p.home.y + 1); else warp(s, D.SPAWN.x, D.SPAWN.y + 2);

@@ -17,7 +17,7 @@ window.Game = (() => {
     hits: new Map(), particles: [], floats: [], bubbles: new Map(), anim: null, tags: [],
     keys: {}, running: false, lastMoveSend: 0, lastSent: null, joy: { dx: 0, dy: 0 }, friendsPos: [],
     ox: 0, oy: 0, lastChunkReq: 0, lastMini: 0, lastUse: 0, onlineN: 1,
-    npcs: new Map(), mobs: new Map(), fx: [], hurtAt: 0, cds: {}, targeting: null, mobHits: new Map(),
+    npcs: new Map(), mobs: new Map(), fx: [], hurtAt: 0, cds: {}, targeting: null, mobHits: new Map(), buffs: {},
   };
 
   // ---------- helpers ----------
@@ -118,9 +118,13 @@ window.Game = (() => {
     }
     let speed = st.run ? 6.6 : 4.3;
     const n = st.me.needs; if (n.hunger < 8 || n.energy < 8) speed *= 0.55;
-    const veh = myVehicle();
-    if (veh) speed = 4.3 * veh.speed * (st.run ? 1.25 : 1);
-    else if (tileAt(Math.floor(st.pos.x), Math.floor(st.pos.y)) === D.T.SHALLOW) speed *= 0.6;
+    const veh = myVehicle(); const cls = st.me.cls;
+    const bs = st.buffs && st.buffs.speed && st.buffs.speed.until > Date.now() ? st.buffs.speed.val : 1;
+    if (veh) speed = 4.3 * veh.speed * (st.run ? 1.25 : 1) * (1 + D.passive(cls, 'vehicleSpeed') / 100);
+    else {
+      speed *= (1 + D.passive(cls, 'speed') / 100) * bs;
+      if (tileAt(Math.floor(st.pos.x), Math.floor(st.pos.y)) === D.T.SHALLOW) speed *= 0.6 * (1 + D.passive(cls, 'swim') / 100);
+    }
     st.moving = len > 0.01;
     if (st.moving) {
       if (Math.abs(dx) > Math.abs(dy)) st.dir = dx > 0 ? 'right' : 'left'; else st.dir = dy > 0 ? 'down' : 'up';
@@ -329,6 +333,11 @@ window.Game = (() => {
         const r = f.r * TILE; ctx.globalAlpha = (1 - t) * 0.35; ctx.fillStyle = f.kind === 'rain' ? '#4b8fe0' : '#7ee787'; ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI * 2); ctx.fill();
       } else if (f.kind === 'blink' || f.kind === 'buff') {
         const r = (0.2 + t * 0.9) * TILE; ctx.globalAlpha = (1 - t); ctx.strokeStyle = f.kind === 'blink' ? '#c084fc' : '#ffe08a'; ctx.lineWidth = 2 * dpr; ctx.beginPath(); ctx.arc(sx, sy - TILE * 0.5, r, 0, Math.PI * 2); ctx.stroke();
+      } else if (f.kind === 'ping') {
+        const r = (0.5 + (now / 300 % 1)) * TILE; ctx.globalAlpha = 0.8 - (now / 300 % 1) * 0.6; ctx.strokeStyle = '#ffe08a'; ctx.lineWidth = 3 * dpr; ctx.beginPath(); ctx.arc(ox + (f.x + 0.5) * TILE, oy + (f.y + 0.5) * TILE, r, 0, Math.PI * 2); ctx.stroke();
+        // off-screen arrow toward the target
+        const sxp = ox + (f.x + 0.5) * TILE, syp = oy + (f.y + 0.5) * TILE;
+        if (sxp < 0 || syp < 0 || sxp > W || syp > H) { const cx = W / 2, cy = H / 2; const a = Math.atan2(syp - cy, sxp - cx); const ax = cx + Math.cos(a) * Math.min(W, H) * 0.4, ay = cy + Math.sin(a) * Math.min(W, H) * 0.4; ctx.globalAlpha = 0.9; ctx.fillStyle = '#ffe08a'; ctx.beginPath(); ctx.moveTo(ax + Math.cos(a) * 14 * dpr, ay + Math.sin(a) * 14 * dpr); ctx.lineTo(ax + Math.cos(a + 2.5) * 10 * dpr, ay + Math.sin(a + 2.5) * 10 * dpr); ctx.lineTo(ax + Math.cos(a - 2.5) * 10 * dpr, ay + Math.sin(a - 2.5) * 10 * dpr); ctx.closePath(); ctx.fill(); }
       } else if (f.kind === 'dash') {
         ctx.globalAlpha = (1 - t) * 0.6; ctx.strokeStyle = '#fff'; ctx.lineWidth = 4 * dpr; ctx.beginPath(); ctx.moveTo(sx, sy - TILE * 0.5); ctx.lineTo(ox + f.to.x * TILE, oy + (f.to.y - 0.5) * TILE); ctx.stroke();
       }
@@ -464,7 +473,7 @@ window.Game = (() => {
       if (def && def.light) lights.push({ x: x + 0.5, y: y + (def.h === 2 ? -0.2 : 0.3), r: def.light * (o.t === 'campfire' || o.t === 'torch' ? 0.9 + 0.1 * Math.sin(now / 90 + x) : 1), warm: o.t === 'campfire' || o.t === 'torch' });
     }
     for (const p of st.players.values()) if (p.id !== st.id) lights.push({ x: p.x, y: p.y - 0.5, r: 2.2 });
-    if (st.me) lights.push({ x: st.pos.x, y: st.pos.y - 0.5, r: 3 });
+    if (st.me) lights.push({ x: st.pos.x, y: st.pos.y - 0.5, r: 3 + D.passive(st.me.cls, 'light') + (st.buffs && st.buffs.light && st.buffs.light.until > now ? 5 : 0) });
     for (const l of lights) {
       const sx = ox + l.x * TILE, sy = oy + l.y * TILE, r = l.r * TILE;
       const g = lctx.createRadialGradient(sx, sy, 0, sx, sy, r);
@@ -601,6 +610,8 @@ window.Game = (() => {
     Net.on('hurt', (m) => { st.hurtAt = performance.now(); float(`-${m.dmg}`, '#ff6b6b'); if (st.me) st.me.hp = m.hp; UI.refreshNeeds(); });
     Net.on('fx', (m) => { const max = m.kind === 'shot' ? 0.12 : m.kind === 'fire' ? 0.5 : m.kind === 'dash' ? 0.25 : 0.7; st.fx.push({ ...m, life: max, max }); if (m.kind === 'rain') for (let i = 0; i < 24; i++) st.particles.push({ x: m.x + 0.5 + (Math.random() - 0.5) * m.r * 2, y: m.y - 2 + Math.random() * 2, vx: 0, vy: 4 + Math.random() * 3, g: 0, life: 0.5 + Math.random() * 0.4, color: '#7cc4f0' }); if (m.kind === 'grow') burst(m.x, m.y, ['#7ee787', '#43aa8b'], 12, m.r * 2, 2); });
     Net.on('skill_ok', (m) => { st.cds[m.id] = m.until; UI.refreshSkills(); });
+    Net.on('ping', (m) => { if (m.at) st.fx.push({ kind: 'ping', x: m.at.x, y: m.at.y, life: 6, max: 6 }); });
+    Net.on('buffs', (m) => { st.buffs = m.b || {}; });
     Net.on('warp', (m) => { st.pos.x = m.x; st.pos.y = m.y; st.cam.x = m.x; st.cam.y = m.y; st.lastSent = null; });
     Net.on('me', (m) => { if (!st.me) return; Object.assign(st.me, m.patch); if ('state' in m.patch) st.state = m.patch.state; UI.onMe(Object.keys(m.patch)); });
     Net.on('time', (m) => { st.time = m.time; st.timeAt = performance.now(); st.onlineN = m.online; });
@@ -613,7 +624,7 @@ window.Game = (() => {
     st.me = init.me; st.id = init.me.id;
     st.pos = { x: init.me.x, y: init.me.y }; st.cam = { x: init.me.x, y: init.me.y };
     st.time = init.world.time; st.timeAt = performance.now();
-    st.chunks.clear(); st.requested.clear(); st.players.clear(); st.npcs.clear(); st.mobs.clear(); st.fx = []; st.cds = {}; st.targeting = null; st.lastSent = null; st.state = null;
+    st.chunks.clear(); st.requested.clear(); st.players.clear(); st.npcs.clear(); st.mobs.clear(); st.fx = []; st.cds = {}; st.targeting = null; st.buffs = {}; st.lastSent = null; st.state = null;
     resize();
     if (!st.running) { st.running = true; last = performance.now(); requestAnimationFrame(loop); }
   }

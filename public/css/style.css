@@ -281,3 +281,10 @@ h3 .ui-ic { width: 20px; height: 20px; vertical-align: -4px; margin-right: 2px; 
 .cls .sk { display: flex; align-items: center; gap: 6px; font-size: 11px; background: var(--cream2); border-radius: 6px; padding: 3px 6px; }
 .cls .sk img { width: 20px; height: 20px; image-rendering: pixelated; } .cls .sk b { display: block; font-size: 12px; } .cls .sk .key { margin-left: auto; font-weight: 800; color: var(--accent); }
 .cls .btn { align-self: center; white-space: nowrap; }
+
+#buffTag { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+#buffTag.hidden { display: none; }
+#buffTag .bf { font-size: 10px; background: #fff3d6; border: 1px solid var(--accent); border-radius: 10px; padding: 1px 6px; color: #7b3f00; }
+#buffTag .bf small { color: var(--muted); }
+.cls.locked { opacity: .65; background: #f6efe0; }
+#pClass { width: 720px; }
