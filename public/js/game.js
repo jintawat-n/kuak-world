@@ -17,6 +17,7 @@ window.Game = (() => {
     hits: new Map(), particles: [], floats: [], bubbles: new Map(), anim: null, tags: [],
     keys: {}, running: false, lastMoveSend: 0, lastSent: null, joy: { dx: 0, dy: 0 }, friendsPos: [],
     ox: 0, oy: 0, lastChunkReq: 0, lastMini: 0, lastUse: 0, onlineN: 1,
+    npcs: new Map(), mobs: new Map(), fx: [], hurtAt: 0, cds: {}, targeting: null, mobHits: new Map(),
   };
 
   // ---------- helpers ----------
@@ -145,10 +146,22 @@ window.Game = (() => {
   }
 
   // ---------- actions ----------
+  function npcAt(tx, ty) { for (const n of st.npcs.values()) if (Math.floor(n.x) === tx && Math.floor(n.y) === ty) return n; return null; }
+  function mobAt(tx, ty) { let best = null, bd = 1e9; for (const m of st.mobs.values()) { const d = Math.hypot(m.x - (tx + 0.5), m.y - (ty + 0.5)); if (d < 0.95 && d < bd) { bd = d; best = m; } } return best; }
   function useAt(tx, ty, itemId) {
     if (!st.me) return;
     const now = performance.now();
+    if (st.targeting) { const sk = st.targeting; st.targeting = null; UI.refreshSkills(); castSkill(sk, tx, ty); return; }
     if (now - st.lastUse < 220) return; st.lastUse = now;
+    const npc = npcAt(tx, ty);
+    if (npc) { if (Math.max(Math.abs(st.pos.x - npc.x), Math.abs(st.pos.y - npc.y)) > 3.5) { UI.toast('เดินเข้าไปใกล้ ' + npc.name + ' ก่อน', 'error'); return; } Net.send({ t: 'talk', npc: npc.id }); return; }
+    const mob = mobAt(tx, ty);
+    if (mob) {
+      if (Math.hypot(st.pos.x - mob.x, st.pos.y - mob.y) > 1.9) { UI.toast('เข้าใกล้อีกนิดถึงจะตีได้ (หรือใช้สกิลระยะไกล)', 'error'); return; }
+      const ddx = mob.x - st.pos.x, ddy = mob.y - st.pos.y; if (Math.abs(ddx) > Math.abs(ddy)) st.dir = ddx > 0 ? 'right' : 'left'; else st.dir = ddy > 0 ? 'down' : 'up';
+      st.anim = { a: (D.ITEMS[itemId] || {}).tool || 'hand', until: now + 300, icon: itemId, tx, ty };
+      Net.send({ t: 'attack', id: mob.id, item: itemId }); return;
+    }
     const d = Math.max(Math.abs(st.pos.x - (tx + 0.5)), Math.abs(st.pos.y - (ty + 0.5)));
     if (d > 3.2) { UI.toast('ไกลเกินไป เดินเข้าไปใกล้กว่านี้', 'error'); return; }
     const ddx = tx + 0.5 - st.pos.x, ddy = ty + 0.5 - st.pos.y;
@@ -156,6 +169,24 @@ window.Game = (() => {
     const item = D.ITEMS[itemId] || D.ITEMS.hand;
     st.anim = { a: item.tool || 'place', until: now + 350, icon: itemId, tx, ty };
     Net.send({ t: 'use', x: tx, y: ty, item: itemId });
+  }
+  function mySkills() { return st.me && st.me.cls && D.CLASSES[st.me.cls] ? D.CLASSES[st.me.cls].skills : []; }
+  function castSkill(sk, tx, ty) {
+    if (!st.me) return;
+    const until = st.cds[sk.id] || 0; if (until > Date.now()) { UI.toast(`${sk.th} ยังคูลดาวน์อยู่ (${Math.ceil((until - Date.now()) / 1000)} วิ)`, 'error', 1200); return; }
+    if (st.me.needs.energy < sk.energy) { UI.toast(`พลังงานไม่พอ (ต้องการ ${sk.energy})`, 'error', 1500); return; }
+    const msg = { t: 'skill', id: sk.id, x: tx, y: ty };
+    const cur = selectedId(); if (cur !== 'hand') msg.item = cur;
+    if (sk.target !== 'self' && tx != null) { const ddx = tx + 0.5 - st.pos.x, ddy = ty + 0.5 - st.pos.y; if (Math.abs(ddx) > Math.abs(ddy) + 0.3) st.dir = ddx > 0 ? 'right' : 'left'; else if (Math.abs(ddy) > 0.3) st.dir = ddy > 0 ? 'down' : 'up'; }
+    Net.send(msg);
+  }
+  // key / button press: self skills fire now; targeted skills use the hovered tile (keyboard) or enter targeting mode (button)
+  function triggerSkill(i, fromButton) {
+    const sk = mySkills()[i]; if (!sk) { if (st.me && !st.me.cls) UI.toast('ยังไม่มีอาชีพ ไปหาครูเพชรกลางเมืองเพื่อเลือกอาชีพ (หรือกด J)', 'info'); return; }
+    if (sk.target === 'self') { castSkill(sk, null, null); return; }
+    if (!fromButton && st.hover) { castSkill(sk, st.hover.x, st.hover.y); return; }
+    st.targeting = st.targeting && st.targeting.id === sk.id ? null : sk; UI.refreshSkills();
+    if (st.targeting) UI.toast(`${sk.th}: คลิกจุดที่ต้องการ (ระยะ ${sk.range} ช่อง)`, 'info', 1500);
   }
   function selectTool(i) { const n = D.TOOL_KINDS.length; st.sel = { zone: 'tool', i: ((i % n) + n) % n }; UI.refreshHotbar(); }
   function selectItem(i) { const n = D.ITEM_SLOTS; st.sel = { zone: 'item', i: ((i % n) + n) % n }; UI.refreshHotbar(); }
@@ -181,8 +212,11 @@ window.Game = (() => {
   }
   function float(text, color = '#fff', x = st.pos.x, y = st.pos.y - 1.6) { st.floats.push({ text, color, x, y, life: 1.4 }); }
   function updateFx(dt) {
-    for (const p of st.particles) { p.life -= dt; p.vy += 6 * dt; p.x += p.vx * dt; p.y += p.vy * dt; }
+    for (const p of st.particles) { p.life -= dt; p.vy += (p.g == null ? 6 : p.g) * dt; p.x += p.vx * dt; p.y += p.vy * dt; }
     st.particles = st.particles.filter(p => p.life > 0);
+    for (const f of st.fx) f.life -= dt; st.fx = st.fx.filter(f => f.life > 0);
+    for (const m of st.mobs.values()) { const kk = 1 - Math.exp(-dt * 12); if (Math.abs(m.tx - m.x) > 3 || Math.abs(m.ty - m.y) > 3) { m.x = m.tx; m.y = m.ty; } else { m.x += (m.tx - m.x) * kk; m.y += (m.ty - m.y) * kk; } }
+    for (const n of st.npcs.values()) { const kk = 1 - Math.exp(-dt * 10); n.x += (n.tx - n.x) * kk; n.y += (n.ty - n.y) * kk; }
     for (const f of st.floats) { f.life -= dt; f.y -= dt * 0.6; }
     st.floats = st.floats.filter(f => f.life > 0);
   }
@@ -228,25 +262,33 @@ window.Game = (() => {
     const ents = [];
     for (let y = y0; y <= y1 + 1; y++) for (let x = x0; x <= x1; x++) { const o = objAt(x, y); if (o) ents.push({ k: sortKey(o, y), o, x, y }); }
     for (const p of st.players.values()) if (p.id !== st.id && p.look) ents.push({ k: p.y, p });
+    for (const n of st.npcs.values()) ents.push({ k: n.y, p: { ...n, id: 'npc:' + n.id, npc: true } });
+    for (const m of st.mobs.values()) ents.push({ k: m.y + 0.3, mob: m });
     if (st.me) ents.push({ k: st.pos.y, me: true });
     ents.sort((a, b) => a.k - b.k);
     for (const e of ents) {
       if (e.o) drawObj(e, ox, oy, now);
+      else if (e.mob) drawMob(e.mob, ox, oy, now);
       else if (e.p) drawPlayer(e.p, ox, oy, now, false);
-      else drawPlayer({ x: st.pos.x, y: st.pos.y, d: st.dir, look: st.me.look, name: st.me.name, id: st.id }, ox, oy, now, true);
+      else drawPlayer({ x: st.pos.x, y: st.pos.y, d: st.dir, look: st.me.look, name: st.me.name, id: st.id, cls: st.me.cls }, ox, oy, now, true);
     }
     // particles
     for (const p of st.particles) { ctx.globalAlpha = Math.min(1, p.life * 2); ctx.fillStyle = p.color; ctx.fillRect(ox + p.x * TILE - dpr, oy + p.y * TILE - dpr, 3 * dpr, 3 * dpr); }
     ctx.globalAlpha = 1;
+    drawFx(ox, oy, now);
     // lighting
     drawLighting(now, ox, oy, x0, y0, x1, y1);
+    // hurt vignette
+    if (st.hurtAt && now - st.hurtAt < 350) { const a = (1 - (now - st.hurtAt) / 350) * 0.45; const g = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.7); g.addColorStop(0, 'rgba(200,0,0,0)'); g.addColorStop(1, `rgba(200,0,0,${a})`); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); }
     // tags, bubbles, floats
     ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
     for (const t of st.tags) {
       const sx = ox + t.x * TILE, sy = oy + (t.y - 1.5) * TILE;
       ctx.font = `600 ${11 * dpr}px ${getComputedStyle(document.body).fontFamily}`;
       ctx.lineWidth = 3 * dpr; ctx.strokeStyle = 'rgba(0,0,0,.7)'; ctx.strokeText(t.name, sx, sy);
-      ctx.fillStyle = t.isMe ? '#ffe08a' : t.friend ? '#9be7a1' : '#fff'; ctx.fillText(t.name, sx, sy);
+      ctx.fillStyle = t.npc ? '#ffd166' : t.isMe ? '#ffe08a' : t.friend ? '#9be7a1' : '#fff'; ctx.fillText(t.name, sx, sy);
+      const sub = t.npc ? t.role : (t.cls && D.CLASSES[t.cls] ? D.CLASSES[t.cls].th : null);
+      if (sub) { ctx.font = `${9 * dpr}px ${getComputedStyle(document.body).fontFamily}`; ctx.strokeText(sub, sx, sy - 11 * dpr); ctx.fillStyle = t.npc ? '#ffe9b0' : '#cfe8ff'; ctx.fillText(sub, sx, sy - 11 * dpr); }
       const b = st.bubbles.get(t.id);
       if (b && b.until > now) drawBubble(sx, sy - 14 * dpr, b.text);
       if (t.state === 'sleep') { ctx.drawImage(SP.uiIconCanvas('zz'), sx + 8 * dpr + Math.sin(now / 400) * 3 * dpr, sy - 22 * dpr - (now / 30 % 10) * dpr, 16 * dpr, 16 * dpr); }
@@ -258,6 +300,45 @@ window.Game = (() => {
     }
     ctx.globalAlpha = 1;
     drawMini(now);
+  }
+  function drawMob(m, ox, oy, now) {
+    const frame = Math.floor((now + m.id * 137) / 260) % 2;
+    const hurt = (st.mobHits.get(m.id) || 0) > now;
+    const spr = SP.mob(m.t, m.v, frame, hurt);
+    const cx = ox + m.x * TILE, cy = oy + m.y * TILE;
+    ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(cx, cy + TILE * 0.28, TILE * 0.32, TILE * 0.1, 0, 0, Math.PI * 2); ctx.fill();
+    const squash = m.a ? 1.15 : 1;
+    ctx.drawImage(spr, Math.round(cx - TILE / 2 * squash), Math.round(cy - TILE * 0.62), TILE * squash, TILE);
+    if (m.hp < m.mh) { const bw = TILE * 0.7, bx = cx - bw / 2, by = cy - TILE * 0.72; ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(bx, by, bw, 3 * dpr); ctx.fillStyle = '#ff5c5c'; ctx.fillRect(bx, by, bw * (m.hp / m.mh), 3 * dpr); }
+    if (st.hover && Math.floor(m.x) === st.hover.x && Math.floor(m.y) === st.hover.y) { const def = D.MOBS[m.t].variants[m.v]; ctx.font = `600 ${10 * dpr}px ${getComputedStyle(document.body).fontFamily}`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.lineWidth = 3 * dpr; ctx.strokeStyle = 'rgba(0,0,0,.7)'; ctx.strokeText(`${def.th} ${m.hp}/${m.mh}`, cx, cy - TILE * 0.78); ctx.fillStyle = '#ffb3b3'; ctx.fillText(`${def.th} ${m.hp}/${m.mh}`, cx, cy - TILE * 0.78); }
+  }
+  function drawFx(ox, oy, now) {
+    for (const f of st.fx) {
+      const t = 1 - f.life / f.max; const sx = ox + (f.x + 0.5) * TILE, sy = oy + (f.y + 0.5) * TILE;
+      ctx.save();
+      if (f.kind === 'shot') {
+        const fx0 = ox + f.from.x * TILE, fy0 = oy + (f.from.y - 0.7) * TILE; const ex = ox + f.x * TILE, ey = oy + f.y * TILE;
+        ctx.globalAlpha = 1 - t; ctx.strokeStyle = f.big ? '#ffe08a' : '#fff'; ctx.lineWidth = (f.big ? 3 : 1.5) * dpr; ctx.beginPath(); ctx.moveTo(fx0, fy0); ctx.lineTo(ex, ey); ctx.stroke();
+      } else if (f.kind === 'fire') {
+        const r = (0.4 + t * f.r) * TILE; ctx.globalAlpha = (1 - t) * 0.8; const g = ctx.createRadialGradient(sx, sy, 0, sx, sy, r); g.addColorStop(0, '#fff3b0'); g.addColorStop(0.5, '#ff8c42'); g.addColorStop(1, 'rgba(255,60,0,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI * 2); ctx.fill();
+      } else if (f.kind === 'boom') {
+        const r = (0.3 + t * f.r) * TILE; ctx.globalAlpha = (1 - t) * 0.7; ctx.strokeStyle = '#ffd166'; ctx.lineWidth = 3 * dpr; ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI * 2); ctx.stroke();
+      } else if (f.kind === 'fan') {
+        const r = t * f.r * TILE; ctx.globalAlpha = (1 - t) * 0.8; ctx.strokeStyle = '#fff'; ctx.lineWidth = 2 * dpr; ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI * 2); ctx.stroke();
+      } else if (f.kind === 'rain' || f.kind === 'grow') {
+        const r = f.r * TILE; ctx.globalAlpha = (1 - t) * 0.35; ctx.fillStyle = f.kind === 'rain' ? '#4b8fe0' : '#7ee787'; ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI * 2); ctx.fill();
+      } else if (f.kind === 'blink' || f.kind === 'buff') {
+        const r = (0.2 + t * 0.9) * TILE; ctx.globalAlpha = (1 - t); ctx.strokeStyle = f.kind === 'blink' ? '#c084fc' : '#ffe08a'; ctx.lineWidth = 2 * dpr; ctx.beginPath(); ctx.arc(sx, sy - TILE * 0.5, r, 0, Math.PI * 2); ctx.stroke();
+      } else if (f.kind === 'dash') {
+        ctx.globalAlpha = (1 - t) * 0.6; ctx.strokeStyle = '#fff'; ctx.lineWidth = 4 * dpr; ctx.beginPath(); ctx.moveTo(sx, sy - TILE * 0.5); ctx.lineTo(ox + f.to.x * TILE, oy + (f.to.y - 0.5) * TILE); ctx.stroke();
+      }
+      ctx.restore();
+    }
+    // targeting range ring
+    if (st.targeting && st.me) {
+      const sk = st.targeting; const cx = ox + st.pos.x * TILE, cy = oy + st.pos.y * TILE;
+      ctx.save(); ctx.globalAlpha = 0.5; ctx.strokeStyle = '#ffe08a'; ctx.setLineDash([6 * dpr, 4 * dpr]); ctx.lineWidth = 2 * dpr; ctx.beginPath(); ctx.arc(cx, cy, (sk.range + 0.5) * TILE, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+    }
   }
   function drawBubble(sx, sy, text) {
     ctx.font = `${12 * dpr}px ${getComputedStyle(document.body).fontFamily}`;
@@ -333,7 +414,7 @@ window.Game = (() => {
     // tool swing
     const anim = isMe ? st.anim : (p.a ? { a: p.a, until: p.aUntil, icon: p.a } : null);
     if (anim && anim.until > now && anim.a !== 'hand' && anim.icon) {
-      const icon = D.ITEMS[anim.icon] ? SP.item(anim.icon) : null;
+      const icon = D.ITEMS[anim.icon] ? SP.item(anim.icon) : anim.a === 'gun' ? SP.uiIconCanvas('sk_shoot') : null;
       if (icon) {
         const t = 1 - (anim.until - now) / 350;
         const ang = (p.d === 'left' ? -1 : 1) * (-0.8 + t * 2.2);
@@ -341,7 +422,7 @@ window.Game = (() => {
         ctx.save(); ctx.translate(hx, hy); ctx.rotate(ang); ctx.drawImage(icon, -TILE * 0.2, -TILE * 0.6, TILE * 0.7, TILE * 0.7); ctx.restore();
       }
     }
-    st.tags.push({ x: p.x, y: p.y, name: p.name, isMe, id: p.id, state, friend: !isMe && UI.isFriend(p.id) });
+    st.tags.push({ x: p.x, y: p.y, name: p.name, isMe, id: p.id, state, friend: !isMe && UI.isFriend(p.id), npc: !!p.npc, role: p.role, cls: p.cls });
   }
   function drawHover(ox, oy, now) {
     if (!st.hover || !st.me) return;
@@ -435,6 +516,7 @@ window.Game = (() => {
     window.addEventListener('keydown', (e) => {
       if (UI.typing()) { if (e.key === 'Escape') document.activeElement.blur(); return; }
       const k = e.key.toLowerCase();
+      if (k === 'escape' && st.targeting) { st.targeting = null; UI.refreshSkills(); return; }
       st.keys[k] = true;
       if (k === 'shift') st.run = true;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
@@ -444,7 +526,8 @@ window.Game = (() => {
       else if (k === 'tab') { if (st.sel.zone === 'tool') selectTool(st.sel.i + 1); else selectTool(0); e.preventDefault(); }
       else if (k === 'e') { const f = facing(); useAt(f.x, f.y, 'hand'); }
       else if (k === ' ') { const f = facing(); useAt(f.x, f.y, selectedId()); e.preventDefault(); }
-      else if (k === 'v') { if (st.me && st.me.vehicle) Net.send({ t: 'mount' }); else UI.toast('ยังไม่ได้ขึ้นพาหนะ: เปิดกระเป๋า (I) แล้วกด "ขี่" ที่พาหนะ', 'info'); }
+      else if (D.SKILL_KEYS.includes(k)) triggerSkill(D.SKILL_KEYS.indexOf(k), false);
+      else if (k === 'g') { if (st.me && st.me.vehicle) Net.send({ t: 'mount' }); else UI.toast('ยังไม่ได้ขึ้นพาหนะ: เปิดกระเป๋า (I) แล้วกด "ขี่" ที่พาหนะ', 'info'); }
       else if (k === 'q') cycle(-1);
       else if (k === 'r') cycle(1);
       else UI.hotkey(k, e);
@@ -457,6 +540,7 @@ window.Game = (() => {
     canvas.addEventListener('mousedown', (e) => {
       if (UI.typing()) document.activeElement.blur();
       const t = toTile(e); st.hover = t;
+      if (e.button === 2 && st.targeting) { st.targeting = null; UI.refreshSkills(); return; }
       if (e.button === 0) useAt(t.x, t.y, selectedId()); else if (e.button === 2) useAt(t.x, t.y, 'hand');
     });
     canvas.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -503,6 +587,20 @@ window.Game = (() => {
       }
     });
     Net.on('leave', (m) => st.players.delete(m.id));
+    Net.on('players', (m) => {
+      const seen = new Set();
+      for (const n of m.npcs || []) { seen.add(n.id); let o = st.npcs.get(n.id); if (!o) { o = { ...n, tx: n.x, ty: n.y }; st.npcs.set(n.id, o); } else { o.tx = n.x; o.ty = n.y; o.d = n.d; o.m = n.m; } }
+      for (const id of st.npcs.keys()) if (!seen.has(id)) st.npcs.delete(id);
+      const seenM = new Set();
+      for (const e of m.mobs || []) { seenM.add(e.id); let o = st.mobs.get(e.id); if (!o) { o = { ...e, tx: e.x, ty: e.y }; st.mobs.set(e.id, o); } else { o.tx = e.x; o.ty = e.y; o.hp = e.hp; o.a = e.a; } }
+      for (const id of st.mobs.keys()) if (!seenM.has(id)) st.mobs.delete(id);
+    });
+    Net.on('mob_hit', (m) => { st.mobHits.set(m.id, performance.now() + 150); float(`-${m.dmg}`, '#ffb3b3', m.x, m.y - 0.9); const mob = st.mobs.get(m.id); if (mob) mob.hp = Math.max(0, mob.hp - m.dmg); burst(Math.floor(m.x), Math.floor(m.y), (D.MOBS.slime.variants[mob ? mob.v : 0] || {}).color || '#5fbd55', 4, 0.5, 2); });
+    Net.on('mob_die', (m) => { st.mobs.delete(m.id); burst(Math.floor(m.x), Math.floor(m.y), D.MOBS.slime.variants[m.v].color, 14, 0.7, 3); });
+    Net.on('mob_gone', (m) => st.mobs.delete(m.id));
+    Net.on('hurt', (m) => { st.hurtAt = performance.now(); float(`-${m.dmg}`, '#ff6b6b'); if (st.me) st.me.hp = m.hp; UI.refreshNeeds(); });
+    Net.on('fx', (m) => { const max = m.kind === 'shot' ? 0.12 : m.kind === 'fire' ? 0.5 : m.kind === 'dash' ? 0.25 : 0.7; st.fx.push({ ...m, life: max, max }); if (m.kind === 'rain') for (let i = 0; i < 24; i++) st.particles.push({ x: m.x + 0.5 + (Math.random() - 0.5) * m.r * 2, y: m.y - 2 + Math.random() * 2, vx: 0, vy: 4 + Math.random() * 3, g: 0, life: 0.5 + Math.random() * 0.4, color: '#7cc4f0' }); if (m.kind === 'grow') burst(m.x, m.y, ['#7ee787', '#43aa8b'], 12, m.r * 2, 2); });
+    Net.on('skill_ok', (m) => { st.cds[m.id] = m.until; UI.refreshSkills(); });
     Net.on('warp', (m) => { st.pos.x = m.x; st.pos.y = m.y; st.cam.x = m.x; st.cam.y = m.y; st.lastSent = null; });
     Net.on('me', (m) => { if (!st.me) return; Object.assign(st.me, m.patch); if ('state' in m.patch) st.state = m.patch.state; UI.onMe(Object.keys(m.patch)); });
     Net.on('time', (m) => { st.time = m.time; st.timeAt = performance.now(); st.onlineN = m.online; });
@@ -515,12 +613,12 @@ window.Game = (() => {
     st.me = init.me; st.id = init.me.id;
     st.pos = { x: init.me.x, y: init.me.y }; st.cam = { x: init.me.x, y: init.me.y };
     st.time = init.world.time; st.timeAt = performance.now();
-    st.chunks.clear(); st.requested.clear(); st.players.clear(); st.lastSent = null; st.state = null;
+    st.chunks.clear(); st.requested.clear(); st.players.clear(); st.npcs.clear(); st.mobs.clear(); st.fx = []; st.cds = {}; st.targeting = null; st.lastSent = null; st.state = null;
     resize();
     if (!st.running) { st.running = true; last = performance.now(); requestAnimationFrame(loop); }
   }
   function stop() { st.running = false; }
   function init() { resize(); bindInput(); bindNet(); }
 
-  return { st, init, start, stop, setZoom, getZoom: () => zoom, tileAt, objAt, selectedId, selectSlot, selectTool, selectItem, useAt, float, hourOf, burst, passable };
+  return { st, init, start, stop, setZoom, getZoom: () => zoom, tileAt, objAt, selectedId, selectSlot, selectTool, selectItem, useAt, float, hourOf, burst, passable, triggerSkill, mySkills };
 })();

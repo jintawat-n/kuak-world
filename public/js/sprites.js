@@ -370,6 +370,22 @@
     const u = itemIcon(id).toDataURL(); cache.set(key, u); return u;
   }
 
+  // ---------------- MOBS ----------------
+  const SLIME = [
+    ['................', '................', '................', '.....mmmmmm.....', '...mmMMMMMMmm...', '..mMMMMMMMMMMm..', '..mMMwMMMMwMMm..', '.mMMMzMMMMzMMMm.', '.mMMMMMMMMMMMMm.', '.mMMMMMzzMMMMMm.', '.mMMMMMMMMMMMMm.', '..mmMMMMMMMMmm..', '...mmmmmmmmmm...', '................', '................', '................'],
+    ['................', '................', '................', '................', '................', '....mmmmmmmm....', '..mmMMMMMMMMmm..', '.mMMMwMMMMwMMMm.', '.mMMMzMMMMzMMMm.', 'mMMMMMMMMMMMMMMm', 'mMMMMMMzzMMMMMMm', 'mMMMMMMMMMMMMMMm', '.mmmmmmmmmmmmmm.', '................', '................', '................'],
+  ];
+  function mobSprite(t, v, frame, hurt) {
+    const key = `mob_${t}_${v}_${frame}_${hurt ? 1 : 0}`;
+    if (cache.has(key)) return cache.get(key);
+    const c = mk(S, S), x = ctxOf(c);
+    const col = (D.MOBS[t] && D.MOBS[t].variants[v] && D.MOBS[t].variants[v].color) || '#5fbd55';
+    const pal = { m: hurt ? '#ffffff' : shade(col, -0.35), M: hurt ? '#ffdddd' : col, w: '#ffffff', z: '#1b1b1b' };
+    drawMap(x, SLIME[frame ? 1 : 0], pal, S, S);
+    if (!hurt) { P(x, 5, frame ? 7 : 5, shade(col, 0.45)); P(x, 6, frame ? 7 : 5, shade(col, 0.45)); }
+    cache.set(key, c); return c;
+  }
+
   // ---------------- UI ICONS (no emoji) ----------------
   const UI_MAPS = {
     heart: ['................', '..rrr.....rrr...', '.rrrrr...rrrrr..', 'rrrrrrr.rrrrrrr.', 'rrrwrrrrrrrrrrr.', 'rrwwrrrrrrrrrrr.', 'rrrrrrrrrrrrrrr.', '.rrrrrrrrrrrrr..', '..rrrrrrrrrrr...', '...rrrrrrrrr....', '....rrrrrrr.....', '.....rrrrr......', '......rrr.......', '.......r........', '................', '................'],
@@ -405,6 +421,26 @@
     zz: ['................', '..wwww..........', '....ww..........', '..ww............', '..wwww..wwwww...', '..........ww....', '........ww......', '......ww........', '......wwwww.....', '................', '................', '................', '................', '................', '................', '................'],
     spark: ['................', '.......y........', '.......y........', '......yyy.......', '..y..yyyyy..y...', '...yyyyyyyyy....', '....yyyyyyy.....', '...yyyyyyyyy....', '..y..yyyyy..y...', '......yyy.......', '.......y........', '.......y........', '................', '................', '................', '................'],
     dice: ['................', '..bbbbbbbbbbbb..', '.bwwwwwwwwwwwwb.', '.bwzzwwwwwwzzwb.', '.bwzzwwwwwwzzwb.', '.bwwwwwwwwwwwwb.', '.bwwwwwzzwwwwwb.', '.bwwwwwzzwwwwwb.', '.bwwwwwwwwwwwwb.', '.bwzzwwwwwwzzwb.', '.bwzzwwwwwwzzwb.', '.bwwwwwwwwwwwwb.', '..bbbbbbbbbbbb..', '................', '................', '................'],
+    cls_farmer: ['................', '......hhhh......', '.....hhhhhh.....', '...hhhhhhhhhh...', '..HHHHHHHHHHHH..', '.....iiiiii.....', '.....iziizi.....', '.....iiiiii.....', '......iiii......', '....LLLLLLLL....', '...LLLLLLLLLL...', '...LLLLLLLLLL...', '...LLLLLLLLLL...', '................', '................', '................'],
+    cls_builder: ['................', '......yyyy......', '.....yyyyyy.....', '....yyyyyyyy....', '....YYYYYYYY....', '.....iiiiii.....', '.....iziizi.....', '.....iiiiii.....', '......iiii......', '....nnnnnnnn....', '...nnnnnnnnnn...', '...nnnnnnnnnn...', '...nnnnnnnnnn...', '................', '................', '................'],
+    cls_wizard: ['................', '.......v........', '......vvv.......', '.....vvvvv......', '....vvvvvvv.....', '...vvvvvvvvv....', '..VVVVVVVVVVV...', '.....iiiiii.....', '.....iziizi.....', '.....iiiiii.....', '....vvvvvvvv....', '...vvvyvvvvvv...', '...vvvvvvyvvv...', '...vvvvvvvvvv...', '................', '................'],
+    cls_gunner: ['................', '....bbbbbbbb....', '...bbBBBBBBbb...', '..bbbbbbbbbbbb..', '.....iiiiii.....', '.....iziizi.....', '.....iiiiii.....', '......iiii......', '....qqqqqqqq....', '...qqqqqqqqqq...', '...qqqqqqqqqq...', '...qqqqqqqqqzzz.', '............zz..', '................', '................', '................'],
+    sk_sow: ['................', '................', '....b...........', '...bbb..........', '....b.....LL....', '.........LLL....', '..b......LL.....', '.bbb.....L......', '..b......L......', '....b.LLLLLLL...', '...bbbLLLLLLL...', '....b.LLLLLLL...', '......LLLLLLL...', '................', '................', '................'],
+    sk_water: ['................', '.....u..........', '....uuu.........', '.....u.....u....', '..........uuu...', '...u.......u....', '..uuu...........', '...u......u.....', '.........uuu....', '.....u....u.....', '....uuu.........', '.....u..........', '................', '................', '................', '................'],
+    sk_reap: ['................', '......ssssss....', '....ssSSSSSSs...', '...sSSs...ss....', '...sS...........', '...sS...........', '....s...........', '.....bb.........', '......bb........', '.......bb.......', '........bb......', '.........bb.....', '..........bb....', '................', '................', '................'],
+    sk_vigor: ['................', '.......yy.......', '......yyyy......', '.....yyyyyy.....', '....yyyyyyyy....', '...yyyyyyyyyy...', '..yyyyyyyyyyyy..', '......yyyy......', '......yyyy......', '......yyyy......', '......yyyy......', '......yyyy......', '................', '................', '................', '................'],
+    sk_floor: ['................', '..bbbbbbbbbbbb..', '..bccBBccBBccb..', '..bccBBccBBccb..', '..bBBccBBccBBb..', '..bBBccBBccBBb..', '..bccBBccBBccb..', '..bccBBccBBccb..', '..bBBccBBccBBb..', '..bBBccBBccBBb..', '..bbbbbbbbbbbb..', '................', '................', '................', '................', '................'],
+    sk_wall: ['................', '.xxxxxxxxxxxxxx.', '.xmmxmmmmxmmmmx.', '.xmmxmmmmxmmmmx.', '.xxxxxxxxxxxxxx.', '.xmmmmxmmmmxmmx.', '.xmmmmxmmmmxmmx.', '.xxxxxxxxxxxxxx.', '.xmmxmmmmxmmmmx.', '.xmmxmmmmxmmmmx.', '.xxxxxxxxxxxxxx.', '................', '................', '................', '................', '................'],
+    sk_demolish: ['................', '..........sss...', '.........sSSs...', '........sSSs....', '.......sSSs.....', '......bbSs......', '.....bbb........', '....bbb.........', '...bbb..........', '..bbb...........', '.bb.............', '................', '..rr....rr......', '.rrrr..rrrr.....', '..rr....rr......', '................'],
+    sk_quarry: ['................', '.......n........', '......nyn.......', '.....nyyyn......', '....nyyyyyn.....', '...nyyyyyyyn....', '..nyyyfffyyyn...', '..nyyffffffyn...', '..nyyffffffyn...', '..nyyyfffyyyn...', '...nyyyyyyyn....', '....nyyyyyn.....', '.....nnnnn......', '................', '................', '................'],
+    sk_rain: ['................', '....eeeeeeee....', '..eeeeeeeeeeee..', '.eeeeeeeeeeeeee.', '.eeeeeeeeeeeeee.', '..eeeeeeeeeeee..', '................', '...u...u...u....', '..uu..uu..uu....', '................', '.u...u...u......', 'uu..uu..uu......', '................', '................', '................', '................'],
+    sk_grow: ['................', '.......LL.......', '......LLLL......', '.....LLLLLL.....', '....LLLLLLLL....', '.......LL.......', '.......LL.......', '..LL...LL...LL..', '...LL..LL..LL...', '....LL.LL.LL....', '.....LLLLLL.....', '.......LL.......', '.......LL.......', '................', '................', '................'],
+    sk_fire: ['................', '.......f........', '......ff........', '.....fff.f......', '....ffffff......', '...fffFfff......', '...ffFFFfff.....', '..ffFFhFFff.....', '..ffFFhhFFf.....', '..fFFhhhhFFf....', '..fFFhhhhFFf....', '...fFFhhFFf.....', '....ffFFff......', '.....ffff.......', '................', '................'],
+    sk_blink: ['................', '.....vv.........', '....vvvv........', '...vv..vv.......', '..vv....vv......', '.vv......vv.....', '..vv....vv..w...', '...vv..vv..www..', '....vvvv..wwwww.', '.....vv....www..', '............w...', '................', '................', '................', '................', '................'],
+    sk_shoot: ['................', '................', '................', '...zzzzzzzzzzzz.', '..zzzzzzzzzzzzzz', '..zzzzzzzzzzzzz.', '..zzzzzzz.......', '..zzzz..........', '..zzzz..........', '..zzz...........', '..zzz...........', '................', '................', '................', '................', '................'],
+    sk_snipe: ['................', '.......rr.......', '.....rrrrrr.....', '....rr....rr....', '...rr..rr..rr...', '...r..rrrr..r...', 'rrrrr.rrrr.rrrrr', '...r..rrrr..r...', '...rr..rr..rr...', '....rr....rr....', '.....rrrrrr.....', '.......rr.......', '................', '................', '................', '................'],
+    sk_fan: ['................', '.......zz.......', '..z....zz....z..', '...z...zz...z...', '....z..zz..z....', '.....z.zz.z.....', '......zzzz......', '.zzzzzzzzzzzzzz.', '......zzzz......', '.....z.zz.z.....', '....z..zz..z....', '...z...zz...z...', '..z....zz....z..', '.......zz.......', '................', '................'],
+    sk_dash: ['................', '................', '................', '..........b.....', '...........b....', '............b...', '.bbbbbbbbbbbbb..', '..bbbbbbbbbbbbb.', '.bbbbbbbbbbbbb..', '............b...', '...........b....', '..........b.....', '................', '................', '................', '................'],
     era_stone: ['................', '................', '.....ssss.......', '....sSSSSs......', '...sSSSSSSs.....', '..sSSSsSSSSs....', '..sSSSSSSSSs....', '.sSSSSSSSsSSs...', '.sdSSSSSSSSSs...', '..ddssssssdd....', '...dddddddd.....', '................', '................', '................', '................', '................'],
     era_iron: ['................', '......ssssss....', '.....sSSSSSSs...', '.....sSSSSSSs...', '.....sSSbbSSs...', '.....ssssbbss...', '........bb......', '........bb......', '.......bb.......', '.......bb.......', '......bb........', '......bb........', '.....bb.........', '................', '................', '................'],
     era_medieval: ['................', '.gg.gg.gg.gg.gg.', '.gggggggggggggg.', '.gggggggggggggg.', '..gggggggggggg..', '..ggggGGGGgggg..', '..ggggGGGGgggg..', '..gggggggggggg..', '..gggggggggggg..', '..ggggGGGGgggg..', '..ggggGGGGgggg..', '..ggggGGGGgggg..', '.gggggggggggggg.', '................', '................', '................'],
@@ -416,7 +452,7 @@
     const key = `uic_${name}`;
     if (cache.has(key)) return cache.get(key);
     const c = mk(16, 16), x = ctxOf(c);
-    if (UI_MAPS[name]) drawMap(x, UI_MAPS[name], { ...PAL, y: '#f2c94c', H: '#d9962b', h: '#ffe08a', r: '#e04848', R: '#a83232', w: '#ffffff', u: '#4b8fe0', U: '#2f5fb0', a: '#43aa8b', L: '#78c850', o: '#3b6b2a', g: '#7a7a80', G: '#3f3f45', n: '#f28c28', c: '#f3dfb5', b: '#8b5a2b', B: '#5e3a17', s: '#8a8a8a', S: '#b5b5b5', d: '#5f5f5f', i: '#f1c27d', z: '#1b1b1b' }, 16, 16);
+    if (UI_MAPS[name]) drawMap(x, UI_MAPS[name], { ...PAL, y: '#f2c94c', H: '#d9962b', h: '#ffe08a', r: '#e04848', R: '#a83232', w: '#ffffff', u: '#4b8fe0', U: '#2f5fb0', a: '#43aa8b', L: '#78c850', o: '#3b6b2a', g: '#7a7a80', G: '#3f3f45', n: '#f28c28', c: '#f3dfb5', b: '#8b5a2b', B: '#5e3a17', s: '#8a8a8a', S: '#b5b5b5', d: '#5f5f5f', i: '#f1c27d', z: '#1b1b1b', v: '#7b3fbf', V: '#4a2380', Y: '#c9a227', e: '#c9d1d9', f: '#ff6b35', F: '#ffb347', q: '#3a2a1a', x: '#c0392b', m: '#d62828' }, 16, 16);
     cache.set(key, c); return c;
   }
   function uiIconURL(name) {
@@ -425,5 +461,5 @@
     const u = uiIconCanvas(name).toDataURL(); cache.set(key, u); return u;
   }
 
-  window.Sprites = { uiIcon: uiIconURL, uiIconCanvas, tile: tileSprite, obj: objSprite, crop: cropSprite, char: charSprite, vehicle: vehicleSprite, item: itemIcon, iconURL: iconDataURL, hash, shade, mk, ctxOf };
+  window.Sprites = { uiIcon: uiIconURL, uiIconCanvas, mob: mobSprite, tile: tileSprite, obj: objSprite, crop: cropSprite, char: charSprite, vehicle: vehicleSprite, item: itemIcon, iconURL: iconDataURL, hash, shade, mk, ctxOf };
 })();

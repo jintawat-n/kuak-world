@@ -34,10 +34,10 @@ window.UI = (() => {
   function panelOpen() { return !$('#modal').classList.contains('hidden'); }
   function currentPanel() { const p = $$('.modal-panel').find(p => !p.classList.contains('hidden')); return panelOpen() && p ? p.id : null; }
   function toggle(id) { if (currentPanel() === id) closePanels(); else openPanel(id); }
-  function refreshPanel(id) { const f = { pInv: refreshInv, pCraft: refreshCraft, pCook: refreshCook, pShop: refreshShop, pFriends: refreshFriends, pMap: drawBigMap, pEra: refreshEra }[id]; if (f) f(); }
+  function refreshPanel(id) { const f = { pInv: refreshInv, pCraft: refreshCraft, pCook: refreshCook, pShop: refreshShop, pFriends: refreshFriends, pMap: drawBigMap, pEra: refreshEra, pClass: refreshClass }[id]; if (f) f(); }
   function hotkey(k, e) {
     switch (k) {
-      case 'i': toggle('pInv'); break; case 'c': toggle('pCraft'); break; case 'b': toggle('pShop'); break;
+      case 'i': toggle('pInv'); break; case 'k': toggle('pCraft'); break; case 'b': toggle('pShop'); break; case 'j': toggle('pClass'); break;
       case 'm': toggle('pMap'); break; case 'f': toggle('pFriends'); break; case 'h': Net.send({ t: 'home' }); break; case 'l': toggle('pEra'); break;
       case 'escape': if (panelOpen()) closePanels(); else openPanel('pMenu'); break;
       case 'enter': $('#worldChat').classList.remove('collapsed'); $('#worldChat').classList.add('expanded'); $('#wcInput').focus(); e.preventDefault(); break;
@@ -152,9 +152,9 @@ window.UI = (() => {
 
   // ---------- crafting / cooking ----------
   function recipeRow(r, cooking) {
-    const me = G().me; const ok = Object.entries(r.in).every(([k, q]) => (me.inv[k] || 0) >= q);
+    const me = G().me; const cost = cooking ? r.in : D.recipeCost(r, me.cls); const ok = Object.entries(cost).every(([k, q]) => (me.inv[k] || 0) >= q);
     const li = document.createElement('div'); li.className = 'li' + (ok ? '' : ' dis');
-    const ings = Object.entries(r.in).map(([k, q]) => `<span class="ing ${(me.inv[k] || 0) >= q ? '' : 'no'}">${icon(k)}${D.ITEMS[k].th} ${me.inv[k] || 0}/${q}</span>`).join('');
+    const ings = Object.entries(cost).map(([k, q]) => `<span class="ing ${(me.inv[k] || 0) >= q ? '' : 'no'}">${icon(k)}${D.ITEMS[k].th} ${me.inv[k] || 0}/${q}</span>`).join('');
     const out = D.ITEMS[r.out];
     const locked = !cooking && r.lv && (me.level || 1) < r.lv;
     if (locked) li.classList.add('locked');
@@ -162,7 +162,7 @@ window.UI = (() => {
     li.innerHTML = `${icon(r.out)}<div class="info"><b>${out.th} x${r.n}${extra}</b>${ings}</div>`;
     if (locked) { const l = document.createElement('span'); l.className = 'lock'; l.innerHTML = `<img class="ui-ic" src="${SP.uiIcon('lock')}" alt=""> Lv ${r.lv} · ${D.eraOf(r.lv).th}`; li.appendChild(l); return li; }
     const b1 = document.createElement('button'); b1.className = 'btn small' + (ok ? ' primary' : ''); b1.textContent = cooking ? 'ทำ' : 'คราฟต์'; b1.disabled = !ok; b1.onclick = () => Net.send({ t: cooking ? 'cook' : 'craft', id: r.id, n: 1 });
-    const b5 = document.createElement('button'); b5.className = 'btn small'; b5.textContent = 'x5'; b5.disabled = !Object.entries(r.in).every(([k, q]) => (me.inv[k] || 0) >= q * 5); b5.onclick = () => Net.send({ t: cooking ? 'cook' : 'craft', id: r.id, n: 5 });
+    const b5 = document.createElement('button'); b5.className = 'btn small'; b5.textContent = 'x5'; b5.disabled = !Object.entries(cost).every(([k, q]) => (me.inv[k] || 0) >= q * 5); b5.onclick = () => Net.send({ t: cooking ? 'cook' : 'craft', id: r.id, n: 5 });
     li.appendChild(b1); li.appendChild(b5); return li;
   }
   function refreshCraft() { refreshLevel(); const l = $('#craftList'); l.innerHTML = ''; const lv = G().me.level || 1; [...D.RECIPES].filter(r => craftCat === 'all' || r.cat === craftCat).sort((a, b) => ((a.lv > lv) - (b.lv > lv)) || (a.lv - b.lv)).forEach(r => l.appendChild(recipeRow(r, false))); }
@@ -320,6 +320,50 @@ window.UI = (() => {
     mark(G().pos.x, G().pos.y, '#ffffff', 5);
   }
 
+  // ---------- skills bar ----------
+  let skillTimer = null;
+  function refreshSkills() {
+    const me = G().me; const box = $('#skillSlots'); if (!box) return; box.innerHTML = '';
+    const cls = me.cls && D.CLASSES[me.cls]; const sks = cls ? cls.skills : [];
+    $('#skillZoneName').textContent = cls ? cls.th : 'สกิล';
+    const now = Date.now(); const tg = G().targeting;
+    for (let i = 0; i < 4; i++) {
+      const sk = sks[i]; const sl = document.createElement('div'); sl.className = 'slot skill' + (sk ? '' : ' none');
+      if (sk) {
+        const until = G().cds[sk.id] || 0; const left = Math.max(0, until - now);
+        sl.innerHTML = `<img class="sk" src="${SP.uiIcon(sk.icon)}" alt=""><span class="k">${D.SKILL_KEYS[i].toUpperCase()}</span><span class="en">${sk.energy}</span>` + (left > 0 ? `<span class="cd">${Math.ceil(left / 1000)}</span>` : '');
+        sl.title = `${sk.th} (${D.SKILL_KEYS[i].toUpperCase()}) · ${sk.desc} · พลังงาน ${sk.energy} · คูลดาวน์ ${sk.cd} วิ${sk.range ? ' · ระยะ ' + sk.range : ''}`;
+        if (me.needs.energy < sk.energy) sl.classList.add('noenergy');
+        if (tg && tg.id === sk.id) sl.classList.add('targeting');
+        sl.onclick = () => Game.triggerSkill(i, true);
+      } else { sl.innerHTML = `<span class="k">${D.SKILL_KEYS[i].toUpperCase()}</span>`; sl.title = cls ? '' : 'ยังไม่มีอาชีพ กด J หรือคุยกับครูเพชรในเมือง'; sl.onclick = () => openPanel('pClass'); }
+      box.appendChild(sl);
+    }
+    clearTimeout(skillTimer);
+    if (sks.some(sk => (G().cds[sk.id] || 0) > now)) skillTimer = setTimeout(refreshSkills, 500);
+  }
+  function refreshClass() {
+    const me = G().me; const box = $('#classList'); box.innerHTML = '';
+    $('#classHint').textContent = me.cls ? `อาชีพปัจจุบัน: ${D.CLASSES[me.cls].th} · เปลี่ยนอาชีพใช้ ${D.CLASS_CHANGE_COST} เหรียญ (คุณมี ${me.coins})` : 'เลือกอาชีพครั้งแรกฟรี · แต่ละอาชีพมีโบนัสติดตัวและสกิล 4 อัน (Z X C V)';
+    for (const [id, c] of Object.entries(D.CLASSES)) {
+      const div = document.createElement('div'); div.className = 'cls' + (me.cls === id ? ' cur' : '');
+      div.innerHTML = `<img class="ci" src="${SP.uiIcon(c.icon)}" alt=""><div class="cb"><h4>${c.th}${me.cls === id ? '<small>อาชีพของคุณ</small>' : ''}</h4><p>${c.desc}</p><ul>${c.passives.map(x => `<li>${x}</li>`).join('')}</ul><div class="sks">${c.skills.map((sk, i) => `<div class="sk"><img src="${SP.uiIcon(sk.icon)}" alt=""><div><b>${sk.th}</b>${sk.desc}<br><span class="muted">พลังงาน ${sk.energy} · คูลดาวน์ ${sk.cd} วิ${sk.range ? ' · ระยะ ' + sk.range : ''}</span></div><span class="key">${D.SKILL_KEYS[i].toUpperCase()}</span></div>`).join('')}</div></div>`;
+      const b = document.createElement('button'); b.className = 'btn ' + (me.cls === id ? '' : 'primary'); b.textContent = me.cls === id ? 'อาชีพปัจจุบัน' : me.cls ? `เปลี่ยน (${D.CLASS_CHANGE_COST})` : 'เลือกอาชีพนี้'; b.disabled = me.cls === id;
+      b.onclick = () => { if (me.cls && !confirm(`เปลี่ยนเป็น${c.th}? ใช้ ${D.CLASS_CHANGE_COST} เหรียญ`)) return; Net.send({ t: 'class', id }); };
+      div.appendChild(b); box.appendChild(div);
+    }
+  }
+  // ---------- NPC dialog ----------
+  function showDialog(m) {
+    const d = $('#dialog'); d.classList.remove('hidden');
+    const npc = G().npcs.get(m.npc);
+    const av = $('#dgAv'); av.innerHTML = ''; if (npc) av.appendChild(avatarCanvas(npc.look));
+    $('#dgName').textContent = m.name; $('#dgRole').textContent = m.role; $('#dgText').textContent = m.text;
+    const ops = $('#dgOpts'); ops.innerHTML = '';
+    for (const o of m.options) { const b = document.createElement('button'); b.className = 'btn small' + (o.id === 'bye' ? '' : ' primary'); b.textContent = o.label; b.onclick = () => { if (o.id === 'bye') return hideDialog(); Net.send({ t: 'dialog', npc: m.npc, opt: o.id }); if (o.id !== 'more') hideDialog(); }; ops.appendChild(b); }
+  }
+  function hideDialog() { $('#dialog').classList.add('hidden'); }
+
   // ---------- era panel ----------
   function refreshEra() {
     refreshLevel();
@@ -352,6 +396,8 @@ window.UI = (() => {
     if (fields.includes('home')) toast('บ้านของคุณอยู่ที่นี่แล้ว กด H เพื่อกลับบ้าน', 'info', 2800, 'home');
     if (fields.includes('xp') || fields.includes('level')) refreshLevel();
     if (fields.includes('vehicle')) { refreshVehicle(); if (currentPanel() === 'pInv') refreshInv(); }
+    if (fields.includes('cls')) { refreshSkills(); if (currentPanel() === 'pClass') refreshClass(); if (currentPanel() === 'pCraft') refreshCraft(); }
+    if (fields.includes('needs')) refreshSkills();
     if (fields.includes('look') || fields.includes('name')) refreshProfile();
   }
 
@@ -386,8 +432,8 @@ window.UI = (() => {
     $('#signSave').onclick = () => { if (signPos) Net.send({ t: 'sign_text', x: signPos.x, y: signPos.y, text: $('#signInput').value }); closePanels(); };
     // world chat
     $$('.wtab').forEach(b => b.onclick = () => { wcScope = b.dataset.scope; $$('.wtab').forEach(t => t.classList.toggle('active', t === b)); b.querySelector('span').textContent = b.dataset.scope === 'local' ? 'ใกล้ตัว' : 'ทั่วโลก'; renderWorld(); });
-    $('#wcToggle').onclick = () => { const wc = $('#worldChat'); if (innerWidth <= 1440) { wc.classList.toggle('expanded'); wc.classList.remove('collapsed'); $('#wcToggle').textContent = wc.classList.contains('expanded') ? '▾' : '▴'; } else { wc.classList.toggle('collapsed'); $('#wcToggle').textContent = wc.classList.contains('collapsed') ? '▴' : '▾'; } };
-    $('#wcForm').onsubmit = (e) => { e.preventDefault(); const inp = $('#wcInput'); const text = inp.value.trim(); if (text) Net.send({ t: 'chat', scope: wcScope, text }); inp.value = ''; inp.blur(); if (innerWidth <= 1440) $('#worldChat').classList.remove('expanded'); };
+    $('#wcToggle').onclick = () => { const wc = $('#worldChat'); if (innerWidth <= 1750) { wc.classList.toggle('expanded'); wc.classList.remove('collapsed'); $('#wcToggle').textContent = wc.classList.contains('expanded') ? '▾' : '▴'; } else { wc.classList.toggle('collapsed'); $('#wcToggle').textContent = wc.classList.contains('collapsed') ? '▴' : '▾'; } };
+    $('#wcForm').onsubmit = (e) => { e.preventDefault(); const inp = $('#wcInput'); const text = inp.value.trim(); if (text) Net.send({ t: 'chat', scope: wcScope, text }); inp.value = ''; inp.blur(); if (innerWidth <= 1750) $('#worldChat').classList.remove('expanded'); };
     $('#wcInput').addEventListener('keydown', (e) => { if (e.key === 'Escape') e.target.blur(); e.stopPropagation(); });
     // dock
     $('#dockBtn').onclick = () => { $('#dockList').classList.toggle('hidden'); refreshDock(); };
@@ -403,7 +449,10 @@ window.UI = (() => {
     Net.on('search_result', (m) => { searchResults = m.list; if (!m.list.length) toast(`ไม่พบผู้ใช้ "${m.q}"`, 'error'); refreshFriends(); });
     Net.on('chat', (m) => addWorld(m));
     Net.on('sign', onSign);
-    Net.on('open', (m) => { if (m.panel === 'shop') openPanel('pShop'); else if (m.panel === 'cook') openPanel('pCook'); });
+    Net.on('open', (m) => { if (m.panel === 'shop') openPanel('pShop'); else if (m.panel === 'cook') openPanel('pCook'); else if (m.panel === 'class') openPanel('pClass'); });
+    Net.on('dialog', showDialog);
+    $('#dgClose').onclick = hideDialog;
+
     Net.on('faint', (m) => { toast(`คุณเป็นลม! ถูกพากลับ${m.where}${m.lost ? ` และทำเหรียญหาย ${m.lost}` : ''}`, 'error', 7000); Game.float('เป็นลม...', '#ff8080'); });
   }
   function start(init) {
@@ -412,12 +461,12 @@ window.UI = (() => {
     searchResults = [];
     for (const w of wins.values()) w.el.remove(); wins.clear();
     $('#game').classList.remove('hidden');
-    refreshNeeds(); refreshCoins(); refreshProfile(); refreshHotbar(); refreshFriends(); refreshDock(); refreshClock(); renderWorld(); refreshLevel(); refreshVehicle();
+    refreshNeeds(); refreshCoins(); refreshProfile(); refreshHotbar(); refreshFriends(); refreshDock(); refreshClock(); renderWorld(); refreshLevel(); refreshVehicle(); refreshSkills(); hideDialog();
     if (!started) { started = true; sysMsg(`ยินดีต้อนรับ ${init.me.name}! กด Enter เพื่อแชต · Esc เมนู · "วิธีเล่น" อยู่ในเมนู`); }
     clearInterval(clockTimer); clockTimer = setInterval(refreshClock, 1000);
     const total = Object.values(unread).reduce((a, b) => a + b, 0); if (total) toast(`คุณมี ${total} ข้อความใหม่`, 'info', 2800, 'chat');
   }
   function stop() { $('#game').classList.add('hidden'); clearInterval(clockTimer); closePanels(); }
 
-  return { init, start, stop, toast, typing, hotkey, isFriend, onMe, refreshHotbar, refreshNeeds, refreshCoins, openPanel, closePanels, openChat, HAIR_TH, HAT_TH, avatarCanvas };
+  return { init, start, stop, toast, typing, hotkey, isFriend, onMe, refreshHotbar, refreshNeeds, refreshCoins, refreshSkills, openPanel, closePanels, openChat, HAIR_TH, HAT_TH, avatarCanvas };
 })();

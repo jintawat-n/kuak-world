@@ -103,17 +103,29 @@
   <!-- toasts -->
   <div id="toasts"></div>
 
+  <!-- NPC dialog -->
+  <div id="dialog" class="panel hidden">
+    <div class="dg-head"><div class="dg-av" id="dgAv"></div><div><div class="dg-name" id="dgName"></div><div class="dg-role" id="dgRole"></div></div><button class="x" id="dgClose">✕</button></div>
+    <div class="dg-text" id="dgText"></div>
+    <div class="dg-opts" id="dgOpts"></div>
+  </div>
+
   <!-- bottom-center: hotbar -->
   <div id="hudBottom">
     <div id="hotbarName" class="muted"></div>
     <div id="hotbar">
       <div id="hbZones"></div>
       <div class="zdiv"></div>
+      <div class="zone" id="skillZone">
+        <div class="zl"><img class="ui-ic zl-ic" data-ic="star" alt=""> <span id="skillZoneName">สกิล</span> <small>Z X C V</small></div>
+        <div class="slots" id="skillSlots"></div>
+      </div>
+      <div class="zdiv"></div>
       <div class="zone menu">
         <div class="zl"><img class="ui-ic zl-ic" data-ic="list" alt=""> เมนู</div>
         <div class="slots">
           <button class="slot mbtn" id="btnInv" title="กระเป๋า (I)"><img class="ui-ic big" data-ic="bag" alt=""><span class="k">I</span></button>
-          <button class="slot mbtn" id="btnCraft" title="คราฟต์ (C)"><img class="ui-ic big" data-item="hammer" alt=""><span class="k">C</span></button>
+          <button class="slot mbtn" id="btnCraft" title="คราฟต์ (K)"><img class="ui-ic big" data-item="hammer" alt=""><span class="k">K</span></button>
           <button class="slot mbtn" id="btnShop" title="ร้านค้า (B)"><img class="ui-ic big" data-ic="shop" alt=""><span class="k">B</span></button>
           <button class="slot mbtn" id="btnHome" title="กลับบ้าน (H)"><img class="ui-ic big" data-ic="home" alt=""><span class="k">H</span></button>
         </div>
@@ -214,6 +226,12 @@
       <div id="eraList"></div>
     </div>
 
+    <div id="pClass" class="panel modal-panel hidden">
+      <div class="ph"><h3><img class="ui-ic" data-ic="star" alt=""> อาชีพและพลังวิเศษ</h3><button class="x" data-close>✕</button></div>
+      <div class="hint" id="classHint"></div>
+      <div id="classList"></div>
+    </div>
+
     <div id="pHelp" class="panel modal-panel hidden">
       <div class="ph"><h3><img class="ui-ic" data-ic="help" alt=""> วิธีเล่น</h3><button class="x" data-close>✕</button></div>
       <div class="help">
@@ -225,8 +243,11 @@
         <p><b>ชีวิตแบบ Sims</b> นอนบนเตียง (พลังงาน+ตั้งเป็นบ้าน) · เก้าอี้/ทีวี/หนังสือ (สนุก) · อ่างอาบน้ำ (สะอาด) · เตา (ทำอาหาร)</p>
         <p><b>เพื่อน</b> F ค้นหาชื่อผู้ใช้ → ส่งคำขอ → แชตส่วนตัว / วาร์ปไปหา · <b>แชตใกล้ตัว</b> Enter</p>
         <p><b>เลเวลและยุค</b> ทำกิจกรรมได้ XP → เลเวลอัป → ปลดล็อกสูตรคราฟต์และของในร้าน ตั้งแต่ยุคหินจนถึงยุคปัจจุบัน (ดูที่ปุ่ม "ยุค" มุมขวาบน หรือกด L)</p>
-        <p><b>ยานพาหนะ</b> คราฟต์/ซื้อแล้วกด "ขี่" ในกระเป๋า · แพ/เรือใช้ในน้ำ (ขึ้นจากชายหาด) · ม้า จักรยาน มอเตอร์ไซค์ รถยนต์ ใช้บนบก · เฮลิคอปเตอร์บินข้ามทุกอย่าง · กด V เพื่อลง</p>
-        <p><b>ปุ่มลัด</b> I กระเป๋า · C คราฟต์ · B ร้านค้า · M แผนที่ · L ยุค · H กลับบ้าน · V ลงจากพาหนะ · Esc เมนู</p>
+        <p><b>ยานพาหนะ</b> คราฟต์/ซื้อแล้วกด "ขี่" ในกระเป๋า · แพ/เรือใช้ในน้ำ (ขึ้นจากชายหาด) · ม้า จักรยาน มอเตอร์ไซค์ รถยนต์ ใช้บนบก · เฮลิคอปเตอร์บินข้ามทุกอย่าง · กด G เพื่อลง</p>
+        <p><b>NPC ในเมือง</b> คลิกที่ตัวละครชื่อสีเหลืองเพื่อคุย: ลุงชม (ร้านค้า) ครูเพชร (เลือกอาชีพ) หมอบัว (รักษาเลือด/พักฟื้น) ป้าแดงและน้องต้น (เคล็ดลับ)</p>
+        <p><b>อาชีพ</b> เลือกที่ครูเพชรฟรีครั้งแรก (เปลี่ยน 200 เหรียญ) มี ชาวไร่ / ช่างก่อสร้าง / พ่อมด / มือปืน แต่ละอาชีพมีโบนัสติดตัวและสกิล 4 อัน กด <b>Z X C V</b> (สกิลเล็งเป้าจะยิงไปที่ช่องใต้เมาส์ หรือคลิกปุ่มสกิลแล้วคลิกเป้า) · ดูรายละเอียดกด J</p>
+        <p><b>มอนสเตอร์</b> สไลม์ออกตอนกลางคืน (19:00-05:30) ในป่านอกเมือง เข้ามากัดทำเลือดลด คลิกที่ตัวมันเพื่อตี (เครื่องมือเหล็กแรงสุด) หรือใช้สกิลพ่อมด/มือปืน ล่าได้เมือกสไลม์ แก่นเวท และ XP · ในเขตเมืองปลอดภัย</p>
+        <p><b>ปุ่มลัด</b> I กระเป๋า · K คราฟต์ · B ร้านค้า · J อาชีพ · M แผนที่ · L ยุค · F เพื่อน · H กลับบ้าน · G ลงจากพาหนะ · Z X C V สกิล · Esc เมนู/ยกเลิกเล็ง</p>
       </div>
     </div>
 

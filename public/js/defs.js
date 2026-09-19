@@ -109,6 +109,8 @@
     sapling:    { th: 'กล้าไม้',  cat: 'seed', stack: 99, plant: 'sapling' },
     flower:     { th: 'ดอกไม้',  cat: 'misc', stack: 99, use: { f: 8 } },
     // food (raw)
+    gel:        { th: 'เมือกสไลม์', cat: 'mat', stack: 999 },
+    essence:    { th: 'แก่นเวท',    cat: 'mat', stack: 999 },
     berry:      { th: 'เบอร์รี่',  cat: 'food', stack: 99, food: { h: 8, f: 2 } },
     mushroom:   { th: 'เห็ด',    cat: 'food', stack: 99, food: { h: 10 } },
     coconut:    { th: 'มะพร้าว',  cat: 'food', stack: 99, food: { h: 15, e: 5 } },
@@ -282,7 +284,7 @@
     lv: { seed_corn: 2, seed_rice: 2, seed_strawberry: 3, seed_pumpkin: 4, axe_iron: 5, pickaxe_iron: 5, raft: 3, horse: 10 },
     sell: {
       carrot: 6, tomato: 9, corn: 12, pumpkin: 30, strawberry: 8, cabbage: 10, chili: 5, rice: 4,
-      berry: 2, mushroom: 3, coconut: 5, flower: 2, wood: 1, stone: 1, ore: 5,
+      berry: 2, mushroom: 3, coconut: 5, flower: 2, wood: 1, stone: 1, ore: 5, gel: 6, essence: 25,
       bread: 12, salad: 40, soup: 55, fried_rice: 70, somtam: 50,
     },
   };
@@ -299,6 +301,56 @@
   };
 
   D.NEEDS = { hunger: 'ความหิว', energy: 'พลังงาน', fun: 'ความสนุก', hygiene: 'ความสะอาด' };
+
+  // ---------- classes (อาชีพ) & skills ----------
+  // skill: energy cost, cd (sec), range (tiles, 0 = self), target: 'tile' | 'mob' | 'self', icon: ui icon name
+  D.CLASSES = {
+    farmer: { th: 'ชาวไร่', icon: 'cls_farmer', desc: 'ปลูกเก่ง เก็บเกี่ยวได้มากกว่า เมล็ดถูกกว่า',
+      passives: ['เก็บเกี่ยวได้ +1 ทุกครั้ง', 'ซื้อเมล็ดลด 30%', 'พืชของคุณโตเร็วขึ้น 25%'],
+      skills: [
+        { id: 'sow',    th: 'หว่านเมล็ด',  desc: 'ปลูกเมล็ดที่เลือกอยู่ลงดินพรวน 3×3', energy: 6,  cd: 4,  range: 3, target: 'tile', icon: 'sk_sow' },
+        { id: 'water3', th: 'รดน้ำวงกว้าง', desc: 'รดน้ำ 3×3 รอบจุดที่เล็ง',           energy: 5,  cd: 4,  range: 3, target: 'tile', icon: 'sk_water' },
+        { id: 'reap',   th: 'เกี่ยวรวด',    desc: 'เก็บเกี่ยวผักสุกทั้งหมดในรัศมี 3',   energy: 8,  cd: 10, range: 0, target: 'self', icon: 'sk_reap' },
+        { id: 'vigor',  th: 'กำลังชาวไร่',  desc: 'ฟื้นพลังงาน +25 และอิ่ม +10',        energy: 0,  cd: 120, range: 0, target: 'self', icon: 'sk_vigor' },
+      ] },
+    builder: { th: 'ช่างก่อสร้าง', icon: 'cls_builder', desc: 'สร้างบ้านเร็ว วัตถุดิบเยอะ สูตรถูกลง',
+      passives: ['ได้ไม้/หิน +1 ทุกครั้งที่ตัดหรือขุด', 'สูตรคราฟต์ใช้วัตถุดิบลด 25%', 'ตัดไม้/ขุดหินแรงขึ้น +1'],
+      skills: [
+        { id: 'floor3',  th: 'ปูพื้น 3×3',   desc: 'ปูพื้นที่เลือกอยู่ 9 ช่องรอบจุดที่เล็ง',   energy: 6, cd: 3,  range: 3, target: 'tile', icon: 'sk_floor' },
+        { id: 'wall',    th: 'ก่อผนังยาว',   desc: 'วางผนังที่เลือกอยู่ 5 ช่องแนวที่หันหน้า', energy: 6, cd: 3,  range: 3, target: 'tile', icon: 'sk_wall' },
+        { id: 'demolish',th: 'รื้อถอน',      desc: 'รื้อสิ่งก่อสร้างของคุณ 3×3 คืนของเข้ากระเป๋า', energy: 4, cd: 3, range: 3, target: 'tile', icon: 'sk_demolish' },
+        { id: 'quarry',  th: 'ระเบิดหิน',    desc: 'ทุบหิน/ต้นไม้ทั้งหมดในรัศมี 2 ทันที',    energy: 15, cd: 30, range: 3, target: 'tile', icon: 'sk_quarry' },
+      ] },
+    wizard: { th: 'พ่อมด', icon: 'cls_wizard', desc: 'ใช้เวทมนตร์ ควบคุมธรรมชาติ และโจมตีด้วยลูกไฟ',
+      passives: ['พลังงานลดช้าลง 30%', 'ล่ามอนสเตอร์ได้แก่นเวทเพิ่ม', 'เลือดฟื้นเร็วขึ้น 2 เท่า'],
+      skills: [
+        { id: 'rain',  th: 'เรียกฝน',  desc: 'รดน้ำแปลงและผักทุกต้นในรัศมี 5 รอบตัว', energy: 15, cd: 45, range: 0, target: 'self', icon: 'sk_rain' },
+        { id: 'grow',  th: 'เร่งโต',   desc: 'ผักในรัศมี 3 รอบจุดที่เล็ง โตขึ้น 1 ระยะ', energy: 25, cd: 90, range: 5, target: 'tile', icon: 'sk_grow' },
+        { id: 'fire',  th: 'ลูกไฟ',    desc: 'ยิงลูกไฟใส่จุดที่เล็ง ทำ 25 ดาเมจในรัศมี 1.5', energy: 8, cd: 2.5, range: 6, target: 'tile', icon: 'sk_fire', dmg: 25 },
+        { id: 'blink', th: 'วาร์ป',    desc: 'เทเลพอร์ตไปจุดที่เล็ง (ไม่เกิน 6 ช่อง)',   energy: 8,  cd: 5,  range: 6, target: 'tile', icon: 'sk_blink' },
+      ] },
+    gunner: { th: 'มือปืน', icon: 'cls_gunner', desc: 'ยิงระยะไกล เคลื่อนที่ไว ล่ามอนสเตอร์ได้ของเพิ่ม',
+      passives: ['วิ่งเร็วขึ้น 15%', 'มอนสเตอร์ดรอปของ +1', 'โจมตีระยะประชิดแรงขึ้น +2'],
+      skills: [
+        { id: 'shoot', th: 'ยิง',        desc: 'ยิงเป้าหมายในระยะ 8 ทำ 14 ดาเมจ',       energy: 2,  cd: 0.6, range: 8, target: 'tile', icon: 'sk_shoot', dmg: 14 },
+        { id: 'snipe', th: 'ยิงแม่น',     desc: 'ยิงทำ 40 ดาเมจ ระยะ 10',                energy: 6,  cd: 6,   range: 10, target: 'tile', icon: 'sk_snipe', dmg: 40 },
+        { id: 'fan',   th: 'ยิงกระจาย',   desc: 'ยิงมอนสเตอร์ทุกตัวในรัศมี 4 รอบตัว ตัวละ 12', energy: 12, cd: 8, range: 0, target: 'self', icon: 'sk_fan', dmg: 12 },
+        { id: 'dash',  th: 'พุ่ง',        desc: 'พุ่งไปข้างหน้า 4 ช่อง',                 energy: 5,  cd: 4,   range: 0, target: 'self', icon: 'sk_dash' },
+      ] },
+  };
+  D.CLASS_CHANGE_COST = 200;
+  D.SKILL_KEYS = ['z', 'x', 'c', 'v'];
+  D.recipeCost = (r, cls) => { if (cls !== 'builder') return r.in; const o = {}; for (const [k, q] of Object.entries(r.in)) o[k] = Math.max(1, Math.floor(q * 0.75)); return o; };
+
+  // ---------- mobs ----------
+  D.MOBS = {
+    slime: { th: 'สไลม์', variants: [
+      { th: 'สไลม์เขียว', hp: 24, dmg: 5,  speed: 2.0, xp: 15, color: '#5fbd55' },
+      { th: 'สไลม์ฟ้า',   hp: 40, dmg: 8,  speed: 2.4, xp: 25, color: '#4b8fe0' },
+      { th: 'สไลม์แดง',   hp: 70, dmg: 12, speed: 2.8, xp: 45, color: '#e04848' },
+    ], drops: [['gel', 1, 3, 1], ['ore', 1, 1, 0.12], ['essence', 1, 1, 0.15]] },
+  };
+  D.MELEE = { hand: 3, axe: 6, pickaxe: 6, hoe: 4, can: 2, hammer: 5, axe_iron: 10, pickaxe_iron: 10 };
 
   // hotbar: tool zone (auto from inventory, best tier first) | item zone (player-arranged)
   D.TOOL_KINDS = [

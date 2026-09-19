@@ -89,7 +89,7 @@ h3 .ui-ic { width: 20px; height: 20px; vertical-align: -4px; margin-right: 2px; 
 .stat .lb { width: 48px; font-weight: 700; color: var(--text); white-space: nowrap; }
 .stat .bar { flex: 1; height: 11px; background: #e6d8b8; border: 2px solid var(--wood); border-radius: 6px; overflow: hidden; }
 .stat .bar i { display: block; height: 100%; background: var(--green); transition: width .4s; }
-.stat .pc { width: 44px; text-align: right; font-weight: 800; color: var(--muted); font-variant-numeric: tabular-nums; }
+.stat .pc { width: 54px; text-align: right; font-weight: 800; color: var(--muted); font-variant-numeric: tabular-nums; }
 .stat.hp .bar { height: 13px; } .stat.hp .bar i { background: linear-gradient(#ff6b6b, #d62828); } .stat.hp .pc { color: #b02a2a; }
 .stat.hp.crit .bar i { animation: blink .8s steps(2) infinite; }
 @keyframes blink { 50% { opacity: .35; } }
@@ -129,7 +129,8 @@ h3 .ui-ic { width: 20px; height: 20px; vertical-align: -4px; margin-right: 2px; 
 .slot.mbtn:hover { background: #fff; box-shadow: 0 0 0 2px var(--accent); }
 .slot.mbtn:active { transform: translateY(1px); }
 .slot.mbtn .k { font-weight: 700; }
-@media (max-width: 980px) { .slot { width: 40px; height: 40px; } .slot img { width: 30px; height: 30px; } .slot.mbtn { font-size: 18px; } #hotbar .zl { font-size: 9px; } }
+@media (max-width: 1250px) { .slot { width: 42px; height: 42px; } .slot img { width: 30px; height: 30px; } .slot.skill img.sk { width: 26px; height: 26px; } .ui-ic.big { width: 22px; height: 22px; } #hotbar .zl { font-size: 9px; } #hotbar { gap: 4px; } #hotbar .slots { gap: 3px; } }
+@media (max-width: 1000px) { .slot { width: 36px; height: 36px; } .slot img { width: 26px; height: 26px; } .slot .k { font-size: 8px; } }
 #hotbar .zone { display: flex; flex-direction: column; gap: 3px; }
 #hotbar .zl { font-size: 10px; font-weight: 700; color: #f3dfb5; text-shadow: 0 1px 0 #000; padding-left: 2px; letter-spacing: .2px; }
 #hotbar .zl small { font-weight: 400; color: #cdb98f; margin-left: 2px; }
@@ -247,5 +248,36 @@ h3 .ui-ic { width: 20px; height: 20px; vertical-align: -4px; margin-right: 2px; 
 .cell .ride { position: absolute; top: -2px; left: -2px; font-size: 10px; background: var(--blue); color: #fff; border-radius: 6px; padding: 0 4px; border: none; cursor: pointer; }
 
 /* when the hotbar (~780px) would collide with the chat/dock, lift them above it and collapse the chat to its header */
-@media (max-width: 1440px) { #worldChat, #dock { bottom: 112px; } #worldChat { width: 260px; } #worldChat:not(.expanded) .wc-body { display: none; } #worldChat:not(.expanded) { width: 200px; } }
+@media (max-width: 1750px) { #worldChat, #dock { bottom: 112px; } #worldChat { width: 260px; } #worldChat:not(.expanded) .wc-body { display: none; } #worldChat:not(.expanded) { width: 200px; } }
 @media (max-width: 980px) { #worldChat, #dock { bottom: 96px; } }
+
+/* skills zone */
+.slot.skill { background: #efe3c8; cursor: pointer; }
+.slot.skill img.sk { width: 30px; height: 30px; image-rendering: pixelated; }
+.slot.skill .cd { position: absolute; inset: 0; background: rgba(20,10,0,.55); border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 14px; }
+.slot.skill.targeting { box-shadow: 0 0 0 3px #ffe08a; background: #fff; }
+.slot.skill.noenergy img.sk { opacity: .4; }
+.slot.skill.none { opacity: .5; }
+.slot.skill .en { position: absolute; bottom: 1px; right: 3px; font-size: 9px; font-weight: 700; color: #2a9d8f; text-shadow: 0 0 2px #fff; }
+#skillZone.hidden { display: none; }
+/* dialog */
+#dialog { position: absolute; left: 50%; bottom: 120px; transform: translateX(-50%); width: 520px; max-width: 92vw; padding: 10px 12px; z-index: 18; }
+.dg-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.dg-av { width: 40px; height: 56px; border-radius: 8px; background: linear-gradient(#9fd8ff, #78c850 70%); border: 2px solid var(--wood); display: flex; align-items: flex-end; justify-content: center; overflow: hidden; }
+.dg-av canvas { width: 36px; height: 54px; image-rendering: pixelated; }
+.dg-name { font-weight: 800; font-size: 15px; } .dg-role { font-size: 12px; color: var(--muted); }
+.dg-head .x { margin-left: auto; border: none; background: transparent; font-size: 18px; cursor: pointer; color: var(--muted); }
+.dg-text { background: #fff; border: 2px solid var(--wood); border-radius: 8px; padding: 10px; font-size: 14px; line-height: 1.5; min-height: 44px; }
+.dg-opts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+/* class panel */
+.cls { display: flex; gap: 12px; background: #fff; border: 2px solid var(--wood); border-radius: 10px; padding: 10px; margin-bottom: 8px; }
+.cls.cur { background: #fff3d6; box-shadow: 0 0 0 2px var(--accent); }
+.cls .ci { width: 56px; height: 56px; image-rendering: pixelated; flex-shrink: 0; border: 2px solid var(--wood); border-radius: 8px; background: var(--cream2); }
+.cls .cb { flex: 1; min-width: 0; }
+.cls h4 { margin: 0 0 2px; font-size: 16px; color: var(--text); } .cls h4 small { color: var(--muted); font-weight: 400; margin-left: 6px; }
+.cls p { margin: 0 0 6px; font-size: 12px; color: var(--muted); }
+.cls ul { margin: 0 0 6px; padding-left: 16px; font-size: 12px; }
+.cls .sks { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.cls .sk { display: flex; align-items: center; gap: 6px; font-size: 11px; background: var(--cream2); border-radius: 6px; padding: 3px 6px; }
+.cls .sk img { width: 20px; height: 20px; image-rendering: pixelated; } .cls .sk b { display: block; font-size: 12px; } .cls .sk .key { margin-left: auto; font-weight: 800; color: var(--accent); }
+.cls .btn { align-self: center; white-space: nowrap; }
