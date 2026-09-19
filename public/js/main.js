@@ -78,7 +78,7 @@
   $('#creatorDone').onclick = () => {
     const name = $('#charName').value.trim();
     if (!name) { $('#charName').focus(); UI.toast('ตั้งชื่อในเกมก่อนนะ', 'error'); return; }
-    if (Creator.edit) { Net.send({ t: 'setlook', name, look: Creator.look }); Creator.hide(); show('game'); Game.st.me.look = Creator.look; Game.st.me.name = name; }
+    if (Creator.edit) { Net.send({ t: 'setlook', name, look: Creator.look }); Creator.hide(); show('game'); Game.st.me.look = Creator.look; Game.st.me.name = name; UI.onMe(['look', 'name']); }
     else Net.send({ t: 'create', name, look: Creator.look });
   };
   $('#creatorCancel').onclick = () => { Creator.hide(); show('game'); };

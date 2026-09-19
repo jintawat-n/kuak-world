@@ -43,11 +43,26 @@ window.UI = (() => {
   }
 
   // ---------- HUD ----------
+  const NEED_FIX = {
+    hunger: 'หิวมาก เดินช้าลง → กินอาหาร: เปิดกระเป๋า (I) คลิกขวาที่อาหาร หรือเก็บเบอร์รี่/เห็ด',
+    energy: 'หมดแรง เดินช้าลง → นอนบนเตียง (คราฟต์เตียงแล้วคลิก) หรือนั่งเก้าอี้พัก',
+    fun: 'เบื่อมาก → เก็บดอกไม้ ดูทีวี อ่านหนังสือ เล่นน้ำพุ หรือกินของอร่อย',
+    hygiene: 'ตัวสกปรก → อาบน้ำในอ่างอาบน้ำ หรือใช้ชักโครก (คราฟต์ได้ในยุคอุตสาหกรรม)',
+  };
   function refreshNeeds() {
-    const n = G().me.needs;
-    for (const [k, v] of Object.entries(n)) { const el = $(`.need[data-n="${k}"] i`); if (!el) continue; el.style.width = v + '%'; el.className = v < 15 ? 'crit' : v < 35 ? 'low' : ''; el.closest('.need').title = `${D.NEEDS[k]} ${Math.round(v)}%`; }
+    const n = G().me.needs; let worst = null;
+    for (const [k, v] of Object.entries(n)) {
+      const row = $(`.need[data-n="${k}"]`); if (!row) continue;
+      const el = row.querySelector('i'); el.style.width = v + '%'; el.className = v < 15 ? 'crit' : v < 35 ? 'low' : '';
+      row.classList.toggle('crit', v < 15); row.classList.toggle('low', v >= 15 && v < 35); row.querySelector('.pc').textContent = Math.round(v) + '%';
+      row.title = `${D.NEEDS[k]} ${Math.round(v)}% · ${NEED_FIX[k]}`;
+      if (v < 15 && (!worst || v < n[worst])) worst = k;
+    }
+    const h = $('#needHint');
+    if (worst) { h.textContent = '⚠️ ' + NEED_FIX[worst]; h.classList.remove('hidden'); } else h.classList.add('hidden');
   }
   function refreshCoins() { $('#coins').textContent = G().me.coins; $('#shopCoins').textContent = `· มี ${G().me.coins} เหรียญ`; }
+  function refreshProfile() { const me = G().me; $('#hudName').textContent = me.name; const av = $('#hudAvatar'); av.innerHTML = ''; av.appendChild(avatarCanvas(me.look)); }
   function refreshLevel() {
     const me = G().me; const lv = me.level || 1, xp = me.xp || 0, need = D.xpNeed(lv); const era = D.eraOf(lv);
     $('#lvl').textContent = `Lv ${lv}`; $('#era').textContent = `${era.icon} ${era.th}`;
@@ -329,7 +344,7 @@ window.UI = (() => {
     if (fields.includes('home')) toast('🏠 บ้านของคุณอยู่ที่นี่แล้ว กด H เพื่อกลับบ้าน', 'info');
     if (fields.includes('xp') || fields.includes('level')) refreshLevel();
     if (fields.includes('vehicle')) { refreshVehicle(); if (currentPanel() === 'pInv') refreshInv(); }
-    if (fields.includes('look') || fields.includes('name')) { /* re-rendered automatically */ }
+    if (fields.includes('look') || fields.includes('name')) refreshProfile();
   }
 
   // ---------- init ----------
@@ -384,7 +399,7 @@ window.UI = (() => {
     searchResults = [];
     for (const w of wins.values()) w.el.remove(); wins.clear();
     $('#game').classList.remove('hidden');
-    refreshNeeds(); refreshCoins(); refreshHotbar(); refreshFriends(); refreshDock(); refreshClock(); renderWorld(); refreshLevel(); refreshVehicle();
+    refreshNeeds(); refreshCoins(); refreshProfile(); refreshHotbar(); refreshFriends(); refreshDock(); refreshClock(); renderWorld(); refreshLevel(); refreshVehicle();
     if (!started) { started = true; sysMsg(`ยินดีต้อนรับ ${init.me.name}! กด Enter เพื่อแชต · Esc เมนู · ❓ วิธีเล่นอยู่ในเมนู`); }
     clearInterval(clockTimer); clockTimer = setInterval(refreshClock, 1000);
     const total = Object.values(unread).reduce((a, b) => a + b, 0); if (total) toast(`💬 คุณมี ${total} ข้อความใหม่`, 'info');

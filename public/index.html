@@ -67,14 +67,22 @@
 
   <!-- HUD top-left: needs -->
   <div id="hudNeeds" class="hud panel">
-    <div class="needs">
-      <div class="need" data-n="hunger"><span class="ic">🍞</span><div class="bar"><i></i></div></div>
-      <div class="need" data-n="energy"><span class="ic">⚡</span><div class="bar"><i></i></div></div>
-      <div class="need" data-n="fun"><span class="ic">🎉</span><div class="bar"><i></i></div></div>
-      <div class="need" data-n="hygiene"><span class="ic">🛁</span><div class="bar"><i></i></div></div>
+    <div class="ph-row">
+      <div class="ph-av" id="hudAvatar"></div>
+      <div class="ph-info">
+        <div class="ph-name" id="hudName">-</div>
+        <div class="ph-lv" id="lvlBox" title="คลิกเพื่อดูยุคและการปลดล็อก"><b id="lvl">Lv 1</b><span class="dot">·</span><span id="era">🪨 ยุคหิน</span></div>
+      </div>
+      <div class="ph-coins" title="เหรียญ">🪙 <b id="coins">0</b></div>
     </div>
-    <div class="coins">🪙 <b id="coins">0</b></div>
-    <div class="lvl" id="lvlBox" title="คลิกเพื่อดูยุคและการปลดล็อก"><b id="lvl">Lv 1</b> <span id="era">🪨 ยุคหิน</span><div class="bar xp"><i id="xpBar"></i></div><span class="muted" id="xpText"></span></div>
+    <div class="xp-row" title="ค่าประสบการณ์ ไปเลเวลถัดไป"><span class="xp-lb">XP</span><div class="bar xp"><i id="xpBar"></i></div><span class="muted" id="xpText"></span></div>
+    <div class="needs">
+      <div class="need" data-n="hunger" title="ความอิ่ม"><div class="nt"><span class="ic">🍞</span><span class="lb">อิ่ม</span><span class="pc"></span></div><div class="bar"><i></i></div></div>
+      <div class="need" data-n="energy" title="พลังงาน"><div class="nt"><span class="ic">⚡</span><span class="lb">พลังงาน</span><span class="pc"></span></div><div class="bar"><i></i></div></div>
+      <div class="need" data-n="fun" title="ความสนุก"><div class="nt"><span class="ic">🎉</span><span class="lb">สนุก</span><span class="pc"></span></div><div class="bar"><i></i></div></div>
+      <div class="need" data-n="hygiene" title="ความสะอาด"><div class="nt"><span class="ic">🛁</span><span class="lb">สะอาด</span><span class="pc"></span></div><div class="bar"><i></i></div></div>
+    </div>
+    <div id="needHint" class="hidden"></div>
     <div id="vehicleTag" class="hidden"></div>
   </div>
 

@@ -535,6 +535,7 @@ function handle(s, m) {
   }
   if (!s.p) return;
   const p = s.p;
+  if (m.t !== 'move' && m.t !== 'chunks' && m.t !== 'ping') s.lastActive = Date.now();
   switch (m.t) {
     case 'move': {
       const x = Number(m.x), y = Number(m.y);
@@ -544,6 +545,7 @@ function handle(s, m) {
       if (!W.passableFor(p.vehicle, Math.floor(x), Math.floor(y))) return send(s.ws, { t: 'warp', x: p.x, y: p.y });
       if (p.state && (Math.abs(dx) > 0.05 || Math.abs(dy) > 0.05)) p.state = null;
       p.x = x; p.y = y; p.d = ['up', 'down', 'left', 'right'].includes(m.d) ? m.d : p.d; s.moving = !!m.m;
+      if (s.moving || Math.abs(dx) > 0.01 || Math.abs(dy) > 0.01) s.lastActive = Date.now();
       s.dirtyPos = true;
       return;
     }
@@ -636,7 +638,7 @@ function sanitizeLook(l) {
 function enter(s, p) {
   const prev = online.get(p.id);
   if (prev && prev !== s) { send(prev.ws, { t: 'kick', reason: 'มีการเข้าสู่ระบบจากที่อื่น' }); prev.p = null; prev.ws.close(); sessions.delete(prev); }
-  s.p = p; p.lastSeen = Date.now(); p.state = null;
+  s.p = p; p.lastSeen = Date.now(); p.state = null; s.lastActive = Date.now();
   p.level = p.level || 1; p.xp = p.xp || 0; p.vehicle = p.vehicle || null;
   // migrate old 8-slot hotbar (tools mixed in) -> item-only zone
   if (!Array.isArray(p.hotbar) || p.hotbar.length !== D.ITEM_SLOTS || p.hotbar.some(x => x && D.ITEMS[x] && D.ITEMS[x].cat === 'tool')) {
@@ -687,6 +689,9 @@ setInterval(() => {
   for (const s of sessions) {
     if (!s.p) continue;
     const p = s.p; const n = p.needs;
+    // idle (no input for 2 min) and not in a restoring state -> needs stop draining
+    const idle = !p.state && Date.now() - (s.lastActive || 0) > 120000;
+    if (idle) continue;
     n.hunger = clamp(n.hunger - 0.035, 0, 100);
     n.hygiene = clamp(n.hygiene - 0.025, 0, 100);
     if (p.state === 'sleep') { n.energy = clamp(n.energy + 2.5, 0, 100); if (n.energy >= 100) { p.state = null; sendMe(s, ['state']); toast(s, 'ตื่นแล้ว พลังงานเต็ม ☀️', 'info'); } }
