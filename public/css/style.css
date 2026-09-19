@@ -84,7 +84,15 @@ h2, h3, h4 { margin: 0 0 10px; } h4 { margin-top: 12px; font-size: 14px; color: 
 .stat.hp.crit .bar i { animation: blink .8s steps(2) infinite; }
 @keyframes blink { 50% { opacity: .35; } }
 .stat.xp .bar { height: 8px; } .stat.xp .bar i { background: linear-gradient(90deg, #ffb454, #e07a1f); } .stat.xp .pc { color: var(--accent); }
-.needs { border-top: 2px dashed var(--cream2); margin-top: 6px; padding-top: 6px; }
+.hud-div { display: flex; align-items: center; gap: 6px; margin: 6px 0 2px; cursor: pointer; user-select: none; }
+.hud-div .line { flex: 1; border-top: 2px dashed var(--cream2); }
+.hud-div:hover .line { border-color: #d9c7a0; }
+.hud-div .chev { position: relative; width: 20px; height: 18px; border: 2px solid var(--wood); border-radius: 6px; background: #fff; flex-shrink: 0; }
+.hud-div .chev::after { content: ''; position: absolute; left: 5px; top: 2px; width: 6px; height: 6px; border-right: 2px solid var(--wood); border-bottom: 2px solid var(--wood); transform: rotate(45deg); transition: transform .15s, top .15s; }
+#hudNeeds.collapsed .hud-div .chev::after { transform: rotate(-135deg); top: 6px; }
+#hudNeeds.collapsed .needs, #hudNeeds.collapsed #needHint { display: none; }
+.hud-div .chev.alert::before { content: ''; position: absolute; right: -5px; top: -5px; width: 8px; height: 8px; border-radius: 50%; background: var(--red); border: 2px solid #fff; }
+.needs { margin-top: 2px; }
 .needs .need.low .bar i { background: #f4a261; } .needs .need.low .pc { color: #d9822b; }
 .needs .need.crit .bar i { background: var(--red); } .needs .need.crit .pc { color: var(--red); }
 .needs .need .pc.ok { color: var(--green); }

@@ -61,6 +61,7 @@ window.UI = (() => {
     }
     const hp = me.hp == null ? 100 : me.hp; const hpRow = $('.stat.hp');
     $('#hpBar').style.width = hp + '%'; $('#hpText').textContent = `${Math.round(hp)}/100`; hpRow.classList.toggle('crit', hp < 25);
+    const chev = $('#needsToggle .chev'); if (chev) chev.classList.toggle('alert', !!worst || hp < 25);
     const h = $('#needHint');
     if (hp < 25) { h.querySelector('span').textContent = 'เลือดใกล้หมด! กินอาหารและพักผ่อนก่อนจะเป็นลม'; h.classList.remove('hidden'); }
     else if (worst) { h.querySelector('span').textContent = NEED_FIX[worst]; h.classList.remove('hidden'); }
@@ -355,6 +356,8 @@ window.UI = (() => {
   // ---------- init ----------
   function init(opts) {
     $$('img.ui-ic[data-ic]').forEach(im => { im.src = SP.uiIcon(im.dataset.ic); });
+    try { if (localStorage.getItem('kw_needs_collapsed') === '1') $('#hudNeeds').classList.add('collapsed'); } catch {}
+    $('#needsToggle').onclick = () => { const c = $('#hudNeeds').classList.toggle('collapsed'); try { localStorage.setItem('kw_needs_collapsed', c ? '1' : '0'); } catch {} };
     $$('[data-close]').forEach(b => b.onclick = closePanels);
     $('#modal').addEventListener('mousedown', (e) => { if (e.target === $('#modal')) closePanels(); });
     $('#btnInv').onclick = () => toggle('pInv'); $('#btnCraft').onclick = () => toggle('pCraft'); $('#btnShop').onclick = () => toggle('pShop');
