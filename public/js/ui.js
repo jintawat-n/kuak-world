@@ -8,7 +8,7 @@ window.UI = (() => {
   const G = () => Game.st;
   let friends = [], reqs = [], unread = {}, wcScope = 'local', wcMsgs = { local: [], global: [] };
   const wins = new Map();
-  let invCat = 'all', craftCat = 'all', shopMode = 'buy', searchResults = [], signPos = null, mapCanvas = null, clockTimer = null, started = false;
+  let invCat = 'all', craftCat = 'all', craftEra = 'all', craftQ = '', craftShowLocked = false, craftCanOnly = false, craftLimit = 60, cookQ = '', cookShowLocked = false, shopMode = 'buy', searchResults = [], signPos = null, mapCanvas = null, clockTimer = null, started = false;
   const HAIR_TH = { short: 'สั้น', long: 'ยาว', spiky: 'ตั้ง', bob: 'บ๊อบ', bun: 'มวย', ponytail: 'หางม้า', curly: 'หยิก', bald: 'โล้น' };
   const HAT_TH = { none: 'ไม่ใส่', cap: 'แก๊ป', straw: 'ฟาง', beanie: 'บีนนี่', crown: 'มงกุฎ', flower: 'ดอกไม้' };
 
@@ -88,13 +88,13 @@ window.UI = (() => {
     const sel = G().sel;
     // ---- zone 1: tools (auto from inventory) ----
     const zt = document.createElement('div'); zt.className = 'zone';
-    zt.innerHTML = `<div class="zl"><img class="ui-ic zl-ic" src="${SP.iconURL('hammer')}" alt=""> เครื่องมือ <small>6-0 · Tab</small></div>`;
+    zt.innerHTML = `<div class="zl"><img class="ui-ic zl-ic" src="${SP.iconURL('hammer')}" alt=""> เครื่องมือ <small>6-0 - · Tab</small></div>`;
     const rt = document.createElement('div'); rt.className = 'slots';
     D.TOOL_KINDS.forEach((k, i) => {
       const id = D.bestTool(me.inv, k.kind);
       const sl = document.createElement('div'); sl.className = 'slot tool' + (sel.zone === 'tool' && sel.i === i ? ' active' : '') + (id ? '' : ' empty');
-      sl.innerHTML = (id ? icon(id) : `<span class="ph" style="background-image:url(${SP.iconURL(k.tiers[k.tiers.length - 1])})"></span>`) + `<span class="k">${i === 4 ? 0 : i + 6}</span>` + (id && D.ITEMS[id].dmg ? '<span class="tier">★</span>' : '');
-      sl.title = id ? `${D.ITEMS[id].th}${D.ITEMS[id].dmg ? ' (แรง x' + D.ITEMS[id].dmg + ')' : ''}` : `ยังไม่มี${k.th} (คราฟต์หรือซื้อที่ร้าน)`;
+      sl.innerHTML = (id ? icon(id) : `<span class="ph" style="background-image:url(${SP.iconURL(k.tiers[k.tiers.length - 1])})"></span>`) + `<span class="k">${i === 4 ? 0 : i === 5 ? '-' : i + 6}</span>` + (id && (D.ITEMS[id].dmg || D.ITEMS[id].melee) ? '<span class="tier">★</span>' : '');
+      sl.title = id ? `${D.ITEMS[id].th}${D.ITEMS[id].dmg ? ' (แรง +' + D.ITEMS[id].dmg + ')' : ''}${D.ITEMS[id].melee ? ' (โจมตี ' + D.ITEMS[id].melee + ')' : ''}` : `ยังไม่มี${k.th} (คราฟต์หรือซื้อที่ร้าน)`;
       sl.onclick = () => Game.selectTool(i);
       rt.appendChild(sl);
     });
@@ -139,7 +139,7 @@ window.UI = (() => {
       if (it.food) { const b = document.createElement('button'); b.className = 'eat'; b.textContent = 'กิน'; b.onclick = (e) => { e.stopPropagation(); Net.send({ t: 'eat', item: id }); }; c.appendChild(b); }
       else if (it.use) { const b = document.createElement('button'); b.className = 'eat'; b.textContent = 'ใช้'; b.onclick = (e) => { e.stopPropagation(); Net.send({ t: 'usemisc', item: id }); }; c.appendChild(b); }
       c.onclick = () => {
-        if (it.cat === 'tool') { const ki = D.TOOL_KINDS.findIndex(k => k.tiers.includes(id)); if (ki >= 0) { Game.selectTool(ki); toast(`เลือก ${it.th} แล้ว (โซนเครื่องมือ)`, 'info', 1200); } return; }
+        if (it.cat === 'tool' || it.cat === 'weapon') { const ki = D.TOOL_KINDS.findIndex(k => k.tiers.includes(id)); if (ki >= 0) { Game.selectTool(ki); toast(`เลือก ${it.th} แล้ว (โซนเครื่องมือ)`, 'info', 1200); } return; }
         const sel = G().sel; let slot = sel.zone === 'item' ? sel.i : me.hotbar.indexOf(id);
         if (slot < 0) slot = me.hotbar.indexOf(null); if (slot < 0) slot = 0;
         const dup = me.hotbar.indexOf(id); if (dup >= 0 && dup !== slot) me.hotbar[dup] = null;
@@ -156,17 +156,40 @@ window.UI = (() => {
     const li = document.createElement('div'); li.className = 'li' + (ok ? '' : ' dis');
     const ings = Object.entries(cost).map(([k, q]) => `<span class="ing ${(me.inv[k] || 0) >= q ? '' : 'no'}">${icon(k)}${D.ITEMS[k].th} ${me.inv[k] || 0}/${q}</span>`).join('');
     const out = D.ITEMS[r.out];
-    const locked = !cooking && r.lv && (me.level || 1) < r.lv;
+    const locked = r.lv && (me.level || 1) < r.lv;
     if (locked) li.classList.add('locked');
-    const extra = out.food ? ` <span class="muted">(หิว+${out.food.h})</span>` : out.vehicle ? ` <span class="muted">(เร็ว x${D.VEHICLES[out.vehicle].speed})</span>` : out.dmg ? ` <span class="muted">(แรง x${out.dmg})</span>` : '';
-    li.innerHTML = `${icon(r.out)}<div class="info"><b>${out.th} x${r.n}${extra}</b>${ings}</div>`;
+    const extra = out.food ? ` <span class="muted">(อิ่ม+${out.food.h}${out.food.f ? ' สนุก+' + out.food.f : ''})</span>` : out.vehicle ? ` <span class="muted">(เร็ว x${D.VEHICLES[out.vehicle].speed})</span>` : out.melee ? ` <span class="muted">(โจมตี ${out.melee})</span>` : out.dmg ? ` <span class="muted">(แรง +${out.dmg})</span>` : (out.obj && D.OBJ[out.obj] && D.OBJ[out.obj].light) ? ' <span class="muted">(ให้แสง)</span>' : '';
+    const eraTag = out.era ? `<span class="era-tag">${ERA_TH(out.era)}</span>` : '';
+    li.innerHTML = `${icon(r.out)}<div class="info"><b>${out.th} x${r.n}${extra}${eraTag}</b>${ings}</div>`;
     if (locked) { const l = document.createElement('span'); l.className = 'lock'; l.innerHTML = `<img class="ui-ic" src="${SP.uiIcon('lock')}" alt=""> Lv ${r.lv} · ${D.eraOf(r.lv).th}`; li.appendChild(l); return li; }
     const b1 = document.createElement('button'); b1.className = 'btn small' + (ok ? ' primary' : ''); b1.textContent = cooking ? 'ทำ' : 'คราฟต์'; b1.disabled = !ok; b1.onclick = () => Net.send({ t: cooking ? 'cook' : 'craft', id: r.id, n: 1 });
     const b5 = document.createElement('button'); b5.className = 'btn small'; b5.textContent = 'x5'; b5.disabled = !Object.entries(cost).every(([k, q]) => (me.inv[k] || 0) >= q * 5); b5.onclick = () => Net.send({ t: cooking ? 'cook' : 'craft', id: r.id, n: 5 });
     li.appendChild(b1); li.appendChild(b5); return li;
   }
-  function refreshCraft() { refreshLevel(); const l = $('#craftList'); l.innerHTML = ''; const lv = G().me.level || 1; [...D.RECIPES].filter(r => craftCat === 'all' || r.cat === craftCat).sort((a, b) => ((a.lv > lv) - (b.lv > lv)) || (a.lv - b.lv)).forEach(r => l.appendChild(recipeRow(r, false))); }
-  function refreshCook() { const l = $('#cookList'); l.innerHTML = ''; D.COOKING.forEach(r => l.appendChild(recipeRow(r, true))); }
+  const ERA_TH = (id) => (D.ERAS.find(e => e.id === id) || {}).th || id;
+  function refreshCraft() {
+    refreshLevel(); const me = G().me; const lv = me.level || 1;
+    // era tabs
+    const et = $('#craftEras'); et.innerHTML = '';
+    for (const e of [{ id: 'all', th: 'ทุกยุค' }, ...D.ERAS]) { const b = document.createElement('button'); b.className = 'tab' + (craftEra === e.id ? ' active' : ''); b.textContent = e.th; b.onclick = () => { craftEra = e.id; craftLimit = 60; refreshCraft(); }; et.appendChild(b); }
+    $$('#craftTabs .tab').forEach(t => t.classList.toggle('active', t.dataset.cat === craftCat));
+    const q = craftQ.toLowerCase();
+    let rs = D.RECIPES.filter(r => (craftCat === 'all' || r.cat === craftCat) && (craftEra === 'all' || (D.ITEMS[r.out].era || 'stone') === craftEra) && (craftShowLocked || lv >= (r.lv || 1)) && (!q || D.ITEMS[r.out].th.toLowerCase().includes(q)));
+    if (craftCanOnly) rs = rs.filter(r => Object.entries(D.recipeCost(r, me.cls)).every(([k, n]) => (me.inv[k] || 0) >= n));
+    rs.sort((a, b) => ((a.lv > lv) - (b.lv > lv)) || (a.lv - b.lv) || a.out.localeCompare(b.out));
+    $('#craftCount').textContent = `· ${rs.length}/${D.RECIPES.length} สูตร`;
+    const l = $('#craftList'); l.innerHTML = '';
+    rs.slice(0, craftLimit).forEach(r => l.appendChild(recipeRow(r, false)));
+    if (rs.length > craftLimit) { const m = document.createElement('div'); m.className = 'more'; const b = document.createElement('button'); b.className = 'btn small'; b.textContent = `แสดงเพิ่ม (เหลืออีก ${rs.length - craftLimit})`; b.onclick = () => { craftLimit += 60; refreshCraft(); }; m.appendChild(b); l.appendChild(m); }
+    if (!rs.length) l.innerHTML = '<div class="muted">ไม่พบสูตร ลองติ๊ก "แสดงที่ยังล็อก" หรือเปลี่ยนยุค/หมวด</div>';
+  }
+  function refreshCook() {
+    const me = G().me; const lv = me.level || 1; const q = cookQ.toLowerCase();
+    const rs = D.COOKING.filter(r => (cookShowLocked || lv >= (r.lv || 1)) && (!q || D.ITEMS[r.out].th.toLowerCase().includes(q))).sort((a, b) => ((a.lv > lv) - (b.lv > lv)) || ((a.lv || 1) - (b.lv || 1)));
+    $('#cookCount').textContent = `· ${rs.length}/${D.COOKING.length} เมนู`;
+    const l = $('#cookList'); l.innerHTML = ''; rs.forEach(r => l.appendChild(recipeRow(r, true)));
+    if (!rs.length) l.innerHTML = '<div class="muted">ไม่พบเมนู</div>';
+  }
 
   // ---------- shop ----------
   function refreshShop() {
@@ -395,18 +418,27 @@ window.UI = (() => {
   function hideDialog() { $('#dialog').classList.add('hidden'); }
 
   // ---------- era panel ----------
+  const CAT_TH = { mat: 'วัสดุ', build: 'พื้น ผนัง ประตู แสงไฟ', furn: 'เฟอร์นิเจอร์และของตกแต่ง', tool: 'เครื่องมือ', weapon: 'อาวุธ', food: 'อาหาร', vehicle: 'พาหนะ', seed: 'เมล็ด' };
   function refreshEra() {
     refreshLevel();
     const me = G().me; const lv = me.level || 1; const cur = D.eraOf(lv);
     const box = $('#eraList'); box.innerHTML = '';
+    const lvOfItem = (id) => { const r = D.RECIPES.find(r => r.out === id); if (r) return r.lv; const c = D.COOKING.find(r => r.out === id); if (c) return c.lv || 1; return D.SHOP.lv[id] || 1; };
     D.ERAS.forEach((e, i) => {
       const next = D.ERAS[i + 1]; const maxLv = next ? next.lv - 1 : 99;
       const div = document.createElement('div'); div.className = 'era' + (e === cur ? ' cur' : '') + (lv < e.lv ? ' locked' : '');
-      const recipes = D.RECIPES.filter(r => r.lv >= e.lv && r.lv <= maxLv).sort((a, b) => a.lv - b.lv);
-      const shopItems = Object.entries(D.SHOP.lv).filter(([k, l]) => l >= e.lv && l <= maxLv);
-      const items = recipes.map(r => `<span class="${lv >= r.lv ? 'got' : ''}" title="เลเวล ${r.lv}">${icon(r.out)}${D.ITEMS[r.out].th}<small class="muted">Lv${r.lv}</small></span>`).join('') + shopItems.map(([k, l]) => `<span class="${lv >= l ? 'got' : ''}" title="ร้านค้า เลเวล ${l}">${icon(k)}${D.ITEMS[k].th}<small class="muted">ร้าน Lv${l}</small></span>`).join('');
-      div.innerHTML = `<h4><img class="ui-ic" src="${SP.uiIcon(e.icon)}" alt=""> ${e.th}<small>เลเวล ${e.lv}${next ? '-' + maxLv : '+'}${e === cur ? ' · คุณอยู่ที่นี่' : lv < e.lv ? ' · ยังไม่ปลดล็อก' : ' · ผ่านแล้ว'}</small></h4><p>${e.desc}</p><div class="items">${items}</div>`;
-      box.appendChild(div);
+      const ids = [...(D.ERA_ITEMS[e.id] || [])];
+      // base (hand-made) recipes and shop items whose level falls in this era
+      for (const r of D.RECIPES) if (!D.ITEMS[r.out].era && r.lv >= e.lv && r.lv <= maxLv && !ids.includes(r.out)) ids.push(r.out);
+      for (const [k, l] of Object.entries(D.SHOP.lv)) if (l >= e.lv && l <= maxLv && !ids.includes(k)) ids.push(k);
+      const groups = {}; for (const id of ids) { const c = D.ITEMS[id].cat; (groups[c] = groups[c] || []).push(id); }
+      const unlocked = ids.filter(id => lv >= lvOfItem(id)).length;
+      let html = `<h4><img class="ui-ic" src="${SP.uiIcon(e.icon)}" alt=""> ${e.th}<small>เลเวล ${e.lv}${next ? '-' + maxLv : '+'}${e === cur ? ' · คุณอยู่ที่นี่' : lv < e.lv ? ' · ยังไม่ปลดล็อก' : ' · ผ่านแล้ว'} · ปลดล็อกแล้ว ${unlocked}/${ids.length} ชิ้น</small></h4><p>${e.desc}</p>`;
+      for (const cat of ['mat', 'build', 'furn', 'tool', 'weapon', 'food', 'vehicle', 'seed']) {
+        if (!groups[cat]) continue;
+        html += `<div class="cat">${CAT_TH[cat] || cat} (${groups[cat].length})</div><div class="items">` + groups[cat].sort((a, b) => lvOfItem(a) - lvOfItem(b)).map(id => { const l = lvOfItem(id); return `<span class="${lv >= l ? 'got' : ''}" title="${D.ITEMS[id].th} · เลเวล ${l}">${icon(id)}${D.ITEMS[id].th}<small class="muted">Lv${l}</small></span>`; }).join('') + '</div>';
+      }
+      div.innerHTML = html; box.appendChild(div);
     });
   }
 
@@ -442,7 +474,12 @@ window.UI = (() => {
     $('#btnInv').onclick = () => toggle('pInv'); $('#btnCraft').onclick = () => toggle('pCraft'); $('#btnShop').onclick = () => toggle('pShop');
     $('#btnHome').onclick = () => Net.send({ t: 'home' }); $('#btnMap').onclick = () => toggle('pMap'); $('#btnFriends').onclick = () => toggle('pFriends'); $('#btnMenu').onclick = () => toggle('pMenu');
     $('#invTabs').onclick = (e) => { const b = e.target.closest('.tab'); if (!b) return; invCat = b.dataset.cat; $$('#invTabs .tab').forEach(t => t.classList.toggle('active', t === b)); refreshInv(); };
-    $('#craftTabs').onclick = (e) => { const b = e.target.closest('.tab'); if (!b) return; craftCat = b.dataset.cat; $$('#craftTabs .tab').forEach(t => t.classList.toggle('active', t === b)); refreshCraft(); };
+    $('#craftTabs').onclick = (e) => { const b = e.target.closest('.tab'); if (!b) return; craftCat = b.dataset.cat; craftLimit = 60; refreshCraft(); };
+    $('#craftQ').oninput = () => { craftQ = $('#craftQ').value.trim(); craftLimit = 60; refreshCraft(); };
+    $('#craftLocked').onchange = () => { craftShowLocked = $('#craftLocked').checked; refreshCraft(); };
+    $('#craftCan').onchange = () => { craftCanOnly = $('#craftCan').checked; refreshCraft(); };
+    $('#cookQ').oninput = () => { cookQ = $('#cookQ').value.trim(); refreshCook(); };
+    $('#cookLocked').onchange = () => { cookShowLocked = $('#cookLocked').checked; refreshCook(); };
     $('#shopTabs').onclick = (e) => { const b = e.target.closest('.tab'); if (!b) return; shopMode = b.dataset.mode; $$('#shopTabs .tab').forEach(t => t.classList.toggle('active', t === b)); refreshShop(); };
     $('#friendSearch').onsubmit = (e) => { e.preventDefault(); const q = $('#friendQ').value.trim(); if (q) Net.send({ t: 'search_user', q }); };
     $('#mSetHome').onclick = () => { Net.send({ t: 'sethome' }); closePanels(); };

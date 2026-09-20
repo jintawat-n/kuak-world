@@ -288,3 +288,10 @@ h3 .ui-ic { width: 20px; height: 20px; vertical-align: -4px; margin-right: 2px; 
 #buffTag .bf small { color: var(--muted); }
 .cls.locked { opacity: .65; background: #f6efe0; }
 #pClass { width: 720px; }
+
+.chk { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; white-space: nowrap; margin: 0; }
+.chk input { width: auto; margin: 0; }
+#pCraft, #pEra { width: 720px; }
+.era .cat { margin: 6px 0 2px; font-size: 12px; font-weight: 700; color: var(--muted); }
+.li .era-tag { font-size: 10px; color: var(--muted); margin-left: 4px; }
+.more { text-align: center; padding: 8px; }

@@ -394,7 +394,7 @@ function craft(s, id, n, cooking) {
   const r = list.find(r => r.id === id);
   if (!r) return;
   n = clamp(Number(n) || 1, 1, 50);
-  if (!cooking && r.lv && !lvOk(s, r.lv)) return;
+  if (r.lv && !lvOk(s, r.lv)) return;
   if (cooking) {
     let near = !!SK.buffVal(s, 'cook', 0);
     const px = Math.floor(p.x), py = Math.floor(p.y);

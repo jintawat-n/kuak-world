@@ -37,10 +37,26 @@
     7: ['#7b5230', '#93643a'], 8: ['#4c321b', '#5d3f24'], 9: ['#c4914f', '#a97a3f'], 10: ['#b3b3ba', '#9a9aa2'],
     11: ['#cdb98f', '#bba77d'], 13: ['#ececec', '#cfd8dc'], 14: ['#c94a4a', '#b53c3c'],
   };
+  function genTile(x, g, v) {
+    const { pattern, a, b } = g; R(x, 0, 0, S, S, a);
+    const rnd = (i) => hash(v * 7 + 1, i * 13 + 99, 5);
+    switch (pattern) {
+      case 'plain': for (let i = 0; i < 4; i++) P(x, Math.floor(rnd(i) * 16), Math.floor(rnd(i + 20) * 16), b); break;
+      case 'plank': for (let j = 0; j < 16; j += 4) { R(x, 0, j, 16, 1, b); R(x, (j / 4) % 2 ? 8 : 3, j + 1, 1, 3, b); } break;
+      case 'brick': for (let j = 0; j < 16; j += 4) { R(x, 0, j, 16, 1, b); const o = (j / 4) % 2 ? 4 : 0; R(x, o, j, 1, 4, b); R(x, o + 8, j, 1, 4, b); } break;
+      case 'checker': R(x, 0, 0, 8, 8, b); R(x, 8, 8, 8, 8, b); break;
+      case 'diamond': for (let i = 0; i < 8; i++) { P(x, 8 + i, i, b); P(x, 7 - i, i, b); P(x, 8 + i, 15 - i, b); P(x, 7 - i, 15 - i, b); } break;
+      case 'tile': R(x, 0, 0, 16, 1, b); R(x, 0, 0, 1, 16, b); R(x, 8, 0, 1, 16, b); R(x, 0, 8, 16, 1, b); P(x, 4, 4, shade(a, 0.15)); P(x, 12, 12, shade(a, 0.15)); break;
+      case 'stripe': for (let j = 0; j < 16; j += 4) R(x, 0, j, 16, 2, b); break;
+      case 'carpet': R(x, 1, 1, 14, 14, shade(a, 0.1)); R(x, 3, 3, 10, 10, a); for (let i = 3; i < 13; i += 3) { P(x, i, 3, b); P(x, i, 12, b); P(x, 3, i, b); P(x, 12, i, b); } break;
+    }
+  }
   function tileSprite(id, v, frame) {
     const key = `t${id}_${v}_${frame}`;
     if (cache.has(key)) return cache.get(key);
     const c = mk(S, S), x = ctxOf(c);
+    const td = D.TILES[id];
+    if (td && td.gen) { genTile(x, td.gen, v); cache.set(key, c); return c; }
     const [a, b] = TILE_COLORS[id] || ['#f0f', '#a0a'];
     R(x, 0, 0, S, S, a);
     const rnd = (i) => hash(v * 7 + 1, i * 13 + id, 5);
@@ -144,6 +160,8 @@
     const vert = dir === 'up' || dir === 'down';
     const key = `v_${id}_${vert ? 'v' : 's'}_${frame}`;
     if (cache.has(key)) return cache.get(key);
+    const vdef = D.VEHICLES[id];
+    if (vdef && vdef.base) { const basec = vehicleSprite(vdef.base, dir, frame); const c = mk(basec.width, basec.height); ctxOf(c).drawImage(basec, 0, 0); tint(c, vdef.color); cache.set(key, c); return c; }
     let c;
     if (vert && ['horse', 'bicycle', 'motorbike', 'car'].includes(id)) {
       c = mk(16, 16); const x = ctxOf(c);
@@ -171,8 +189,75 @@
     cache.set(key, c); return c;
   }
 
+  // procedural shape renderer for generated era objects (recolored by pal)
+  const SHAPE_ALIAS = { wall: 'wall_wood', door: 'door', window: 'window', fence: 'fence', gate: 'gate', bed: 'bed', chair: 'chair', table: 'table', sofa: 'sofa', shelf: 'shelf', plant: 'plant', tv: 'tv', stove: 'stove', bathtub: 'bathtub', fountain: 'fountain', streetlamp: 'streetlamp', torch2: 'torch', stonebath: 'bathtub', tub: 'bathtub', firepit: 'campfire', hearth: 'stove', cabinet: 'fridge', oven: 'stove' };
+  function drawShape(x, shape, pal, h, frame) {
+    const H = S * h, base = H; const c = pal.c || '#c9a063', b = pal.b || shade(c, -0.35), B = pal.B || shade(c, -0.5), sCol = pal.s || '#8a8a8a', u = pal.u || '#4b6bd6', r = pal.r || '#e63946', y = pal.y || '#f7d94c', g = pal.g || '#7a7a80', G = pal.G || '#3f3f45', e = pal.e || '#ececec', z = pal.z || '#1b1b1b', L = pal.L || '#5fbd55', w = pal.w || '#ffffff', hl = pal.h || '#ffe08a', fl = pal.f || '#ff6b35';
+    const flick = frame ? 1 : 0;
+    switch (shape) {
+      // ---- pillars / statues ----
+      case 'totem': R(x, 5, 2, 6, H - 4, c); R(x, 5, 2, 6, 1, B); for (let i = 0; i < 3; i++) { R(x, 4, 4 + i * 9, 8, 3, i % 2 ? r : u); P(x, 6, 5 + i * 9, z); P(x, 9, 5 + i * 9, z); } R(x, 3, H - 2, 10, 2, B); break;
+      case 'skullpole': R(x, 7, 8, 2, H - 10, b); R(x, 4, 2, 8, 7, e); P(x, 6, 4, z); P(x, 9, 4, z); R(x, 6, 7, 4, 1, z); R(x, 5, H - 2, 6, 2, B); break;
+      case 'stonestatue': case 'statue': case 'knightarmor': R(x, 3, H - 4, 10, 4, B); R(x, 4, H - 5, 8, 1, sCol); R(x, 6, 3, 4, 4, shape === 'knightarmor' ? g : sCol); R(x, 4, 7, 8, 9, shape === 'knightarmor' ? G : sCol); R(x, 2, 8, 2, 6, shape === 'knightarmor' ? g : sCol); R(x, 12, 8, 2, 6, shape === 'knightarmor' ? g : sCol); if (shape === 'knightarmor') { R(x, 6, 4, 4, 1, z); R(x, 12, 4, 1, 10, e); } R(x, 5, 16, 2, H - 20, shape === 'knightarmor' ? G : sCol); R(x, 9, 16, 2, H - 20, shape === 'knightarmor' ? G : sCol); break;
+      case 'robot': R(x, 4, 2, 8, 7, e); R(x, 5, 3, 6, 3, u); P(x, 6, 4, w); P(x, 9, 4, w); R(x, 3, 9, 10, 9, g); R(x, 5, 11, 6, 4, z); P(x, 6, 12, r); P(x, 9, 12, L); R(x, 1, 10, 2, 7, g); R(x, 13, 10, 2, 7, g); R(x, 4, 18, 3, H - 20, G); R(x, 9, 18, 3, H - 20, G); P(x, 7, 0, r); P(x, 7, 1, g); break;
+      case 'hologram': R(x, 3, H - 3, 10, 3, G); R(x, 5, H - 4, 6, 1, u); for (let i = 0; i < 10; i++) { const yy = 4 + i * 2; if ((i + flick) % 2 === 0) R(x, 6 - (i % 3), yy, 4 + (i % 3) * 2, 1, pal.u || '#7cf2ff'); } R(x, 6, 4, 4, 4, '#bfe3ff'); break;
+      // ---- boxes / machines ----
+      case 'crate': R(x, 2, 4, 12, 11, c); R(x, 2, 4, 12, 1, b); R(x, 2, 14, 12, 1, B); R(x, 2, 4, 1, 11, B); R(x, 13, 4, 1, 11, B); for (let i = 0; i < 10; i++) { P(x, 3 + i, 5 + i, B); P(x, 12 - i, 5 + i, B); } break;
+      case 'barrel': R(x, 3, 2, 10, 13, c); R(x, 3, 2, 10, 1, B); R(x, 3, 14, 10, 1, B); R(x, 2, 5, 12, 1, g); R(x, 2, 11, 12, 1, g); R(x, 5, 3, 1, 11, shade(c, 0.15)); break;
+      case 'vending': R(x, 2, 1, 12, H - 2, r); R(x, 3, 2, 10, 8, '#bfe3ff'); for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) R(x, 4 + i * 3, 3 + j * 3, 2, 2, [u, y, L][i]); R(x, 3, 12, 10, 3, z); R(x, 4, H - 5, 8, 2, y); break;
+      case 'arcade': R(x, 2, 1, 12, H - 2, u); R(x, 3, 3, 10, 7, z); R(x, 4, 4, 8, 5, '#1b2a44'); P(x, 6, 6, y); P(x, 9, 5, r); P(x, 8, 7, L); R(x, 3, 12, 10, 3, G); P(x, 5, 13, r); P(x, 8, 13, y); P(x, 11, 13, L); break;
+      case 'speaker': R(x, 3, 1, 10, H - 2, z); for (let i = 0; i < 2; i++) { R(x, 5, 3 + i * 9, 6, 6, G); R(x, 6, 4 + i * 9, 4, 4, g); P(x, 7, 5 + i * 9, z); P(x, 8, 5 + i * 9, z); } if (flick) R(x, 2, 6, 1, 4, u); break;
+      case 'aquarium': R(x, 1, 3, 14, 11, G); R(x, 2, 4, 12, 9, u); P(x, 4, 6 + flick, y); P(x, 5, 6 + flick, y); P(x, 10, 9 - flick, r); P(x, 11, 9 - flick, r); R(x, 3, 11, 10, 1, '#e9d79f'); R(x, 12, 5, 1, 6, L); break;
+      case 'steamengine': R(x, 1, 6, 14, 9, g); R(x, 2, 7, 12, 7, G); R(x, 3, 2, 4, 5, g); R(x, 4, 0 + flick, 2, 2, e); R(x, 9, 8, 4, 4, sCol); P(x, 10, 9, r); R(x, 1, 15, 14, 1, z); break;
+      case 'radio': R(x, 2, 6, 12, 8, c); R(x, 3, 7, 5, 6, G); R(x, 9, 8, 4, 1, z); R(x, 9, 10, 4, 1, z); P(x, 12, 12, r); R(x, 7, 3, 1, 3, g); break;
+      case 'typewriter': R(x, 2, 8, 12, 6, G); R(x, 3, 5, 10, 3, g); for (let i = 0; i < 4; i++) { P(x, 4 + i * 2, 10, e); P(x, 5 + i * 2, 12, e); } R(x, 4, 3, 8, 2, w); break;
+      case 'gramophone': R(x, 3, 10, 10, 5, c); R(x, 3, 10, 10, 1, B); R(x, 8, 5, 2, 5, g); for (let i = 0; i < 5; i++) R(x, 9 + i, 1 + i, 1, 5 - i, y); R(x, 9, 0, 6, 1, y); break;
+      case 'mailbox': R(x, 7, 8, 2, H - 8, b); R(x, 3, 2, 10, 7, u); R(x, 3, 2, 10, 1, shade(u, -0.3)); R(x, 12, 3, 1, 3, r); R(x, 5, 5, 6, 1, w); break;
+      case 'anvil': R(x, 2, 6, 12, 3, g); R(x, 5, 9, 6, 3, G); R(x, 3, 12, 10, 3, g); R(x, 1, 6, 3, 2, g); break;
+      case 'drum': R(x, 3, 5, 10, 9, c); R(x, 3, 5, 10, 2, e); R(x, 3, 13, 10, 1, B); R(x, 4, 7, 1, 6, B); R(x, 11, 7, 1, 6, B); break;
+      case 'rockpile': R(x, 4, 10, 8, 5, sCol); R(x, 2, 12, 5, 3, shade(sCol, -0.2)); R(x, 9, 11, 5, 4, shade(sCol, 0.15)); R(x, 6, 7, 5, 4, shade(sCol, 0.1)); break;
+      case 'solar': R(x, 1, 5, 14, 8, '#1b2a44'); for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) R(x, 2 + i * 4, 6 + j * 3, 3, 2, '#2e5fb0'); R(x, 7, 13, 2, 3, g); R(x, 4, 15, 8, 1, G); break;
+      case 'clocktower': R(x, 5, 4, 6, H - 6, c); R(x, 5, 4, 6, 1, B); R(x, 4, 2, 8, 2, B); R(x, 5, 6, 6, 6, w); R(x, 5, 6, 6, 1, z); R(x, 5, 11, 6, 1, z); R(x, 8, 8, 1, 2, z); R(x, 8, 9, 2, 1, z); R(x, 7, 14, 2, H - 18, y); R(x, 4, H - 2, 8, 2, B); break;
+      case 'gearwheel': for (let a = 0; a < 8; a++) { const px = 8 + Math.round(Math.cos(a * Math.PI / 4 + flick * 0.4) * 6), py = 8 + Math.round(Math.sin(a * Math.PI / 4 + flick * 0.4) * 6); R(x, px - 1, py - 1, 2, 2, g); } for (let i = 0; i < 24; i++) { const px = 8 + Math.round(Math.cos(i / 24 * Math.PI * 2) * 4), py = 8 + Math.round(Math.sin(i / 24 * Math.PI * 2) * 4); P(x, px, py, G); } R(x, 7, 7, 2, 2, z); break;
+      case 'piano': R(x, 1, 3, 14, 10, z); R(x, 2, 9, 12, 3, w); for (let i = 3; i < 14; i += 2) P(x, i, 9, z); R(x, 2, 13, 1, 3, z); R(x, 13, 13, 1, 3, z); break;
+      case 'telescope': R(x, 7, 9, 2, 6, g); R(x, 4, 14, 8, 1, G); for (let i = 0; i < 7; i++) R(x, 4 + i, 8 - i, 2, 2, sCol); R(x, 10, 1, 3, 3, G); break;
+      case 'drone': R(x, 5, 8, 6, 3, G); R(x, 6, 9, 4, 1, u); R(x, 1, 6 + flick, 5, 1, g); R(x, 10, 6 + flick, 5, 1, g); P(x, 3, 7, z); P(x, 12, 7, z); P(x, 7, 12, r); break;
+      case 'bell': R(x, 6, 1, 4, 2, B); R(x, 5, 3, 6, 6, y); R(x, 4, 9, 8, 2, shade(y, -0.2)); P(x, 7, 11, z); R(x, 2, 0, 12, 1, b); break;
+      case 'globe': R(x, 4, 3, 8, 8, u); R(x, 5, 4, 2, 2, L); R(x, 8, 7, 3, 2, L); R(x, 7, 11, 2, 2, c); R(x, 5, 13, 6, 1, B); R(x, 12, 2, 1, 9, y); break;
+      case 'harp': R(x, 3, 2, 2, 12, y); R(x, 3, 13, 10, 2, y); for (let i = 0; i < 5; i++) R(x, 5 + i * 2, 4 + i, 1, 9 - i, e); for (let i = 0; i < 9; i++) P(x, 5 + i, 2 + Math.floor(i * i / 12), y); break;
+      case 'bookstand': R(x, 7, 6, 2, 8, b); R(x, 4, 14, 8, 1, B); R(x, 3, 2, 10, 5, c); R(x, 4, 3, 8, 3, w); R(x, 8, 3, 1, 3, r); break;
+      case 'throne': R(x, 3, 1, 10, 9, r); R(x, 3, 1, 10, 1, y); R(x, 2, 6, 12, 5, shade(r, -0.2)); R(x, 2, 11, 12, 1, y); R(x, 2, 12, 2, 4, y); R(x, 12, 12, 2, 4, y); P(x, 5, 3, y); P(x, 10, 3, y); break;
+      case 'strawmat': R(x, 1, 5, 14, 8, c); for (let j = 6; j < 13; j += 2) R(x, 1, j, 14, 1, B); R(x, 1, 5, 14, 1, shade(c, 0.2)); break;
+      // ---- wall art ----
+      case 'cavepaint': case 'painting': case 'tapestry': case 'banner': case 'shield': case 'bonehang': case 'neon': case 'weaponrack': {
+        const fr = shape === 'painting' ? y : shape === 'neon' ? z : b; R(x, 2, 2, 12, H - 4, fr); R(x, 3, 3, 10, H - 6, shape === 'cavepaint' ? '#c9a063' : shape === 'tapestry' ? r : shape === 'banner' ? u : shape === 'neon' ? z : shape === 'shield' ? sCol : shape === 'weaponrack' ? c : e);
+        if (shape === 'cavepaint') { R(x, 5, 6, 3, 2, B); R(x, 9, 9, 4, 2, r); P(x, 6, 12, B); } else if (shape === 'painting') { R(x, 4, 4, 8, 4, u); R(x, 4, 8, 8, 6, L); P(x, 10, 5, y); } else if (shape === 'tapestry') { R(x, 5, 6, 6, 6, y); P(x, 7, 8, r); P(x, 8, 9, r); } else if (shape === 'banner') { R(x, 6, 6, 4, 6, y); } else if (shape === 'shield') { R(x, 5, 6, 6, 8, r); R(x, 7, 4, 2, 12, y); } else if (shape === 'bonehang') { R(x, 5, 5, 6, 1, e); R(x, 6, 6, 1, 6, e); R(x, 9, 6, 1, 5, e); P(x, 6, 12, e); } else if (shape === 'neon') { R(x, 4, 6 + flick, 8, 2, pal.u || '#7cf2ff'); R(x, 5, 10, 6, 2, '#ff8fab'); } else { R(x, 5, 5, 1, 9, g); R(x, 8, 4, 1, 10, g); R(x, 11, 6, 1, 8, g); R(x, 4, 4, 3, 1, sCol); R(x, 7, 3, 3, 1, sCol); }
+        break;
+      }
+      // ---- lamps ----
+      case 'brazier': R(x, 3, 12, 10, 3, sCol); R(x, 5, 9, 6, 3, shade(sCol, -0.2)); R(x, 6, 4 + flick, 4, 5, fl); R(x, 7, 2 + flick, 2, 3, hl); P(x, 5, 6 - flick, fl); P(x, 10, 5 + flick, fl); break;
+      case 'stonelamp': R(x, 6, 10, 4, H - 10, sCol); R(x, 4, 6, 8, 4, shade(sCol, -0.2)); R(x, 5, 7, 6, 2, hl); R(x, 3, 4, 10, 2, sCol); break;
+      case 'oillamp': case 'lantern': case 'gaslamp': R(x, 7, 0, 2, H - 8, g); R(x, 4, H - 10, 8, 8, G); R(x, 5, H - 9, 6, 6, hl); R(x, 6, H - 8, 4, 4 - flick, fl); if (shape === 'gaslamp') { R(x, 3, H - 11, 10, 1, g); } break;
+      case 'candle': case 'candelabra': { const n = shape === 'candle' ? 2 : 3; for (let i = 0; i < n; i++) { const cx = 4 + i * (n === 2 ? 6 : 4); R(x, cx, 6, 2, 7, e); R(x, cx, 4 - flick, 2, 2, fl); P(x, cx, 3 - flick, hl); } R(x, 3, 13, 10, 2, y); R(x, 7, 15, 2, 1, y); break; }
+      case 'chandelier': R(x, 7, 0, 2, 6, y); R(x, 2, 6, 12, 2, y); for (let i = 0; i < 4; i++) { const cx = 3 + i * 3; R(x, cx, 3 - flick, 1, 3, fl); P(x, cx, 2 - flick, hl); } R(x, 4, 8, 8, 2, shade(y, -0.2)); for (let i = 0; i < 5; i++) P(x, 4 + i * 2, 10 + (i % 2), '#bfe3ff'); break;
+      case 'ledlamp': R(x, 7, 6, 2, H - 8, e); R(x, 3, 2, 10, 4, w); R(x, 4, 3, 8, 2, pal.u || '#7cf2ff'); R(x, 4, H - 2, 8, 2, g); break;
+      case 'floorlamp': R(x, 7, 8, 2, H - 10, g); R(x, 3, 2, 10, 6, e); R(x, 4, 3, 8, 4, hl); R(x, 4, H - 2, 8, 2, G); break;
+      // ---- pots ----
+      case 'potplant': case 'vase': R(x, 5, 8, 6, 7, c); R(x, 4, 7, 8, 1, B); R(x, 6, 15, 4, 1, B); R(x, 5, 9, 1, 5, shade(c, 0.2)); if (shape === 'potplant') { R(x, 7, 3, 2, 5, '#3f8f3a'); R(x, 5, 4, 2, 2, L); R(x, 9, 2, 2, 2, L); } else { R(x, 6, 3, 4, 2, r); R(x, 7, 1, 2, 2, r); } break;
+      default: R(x, 3, 3, 10, H - 6, c); R(x, 3, 3, 10, 1, B); R(x, 3, H - 4, 10, 1, B);
+    }
+  }
   function objSprite(obj, frame) {
     const t = obj.t;
+    const gdef = D.OBJ[t] && D.OBJ[t].gen;
+    if (gdef) {
+      const key = `og_${t}_${frame ? 1 : 0}`;
+      if (cache.has(key)) return cache.get(key);
+      const h = D.OBJ[t].h || 1; const c = mk(S, S * h), x = ctxOf(c);
+      const base = SHAPE_ALIAS[gdef.shape] || gdef.shape;
+      if (MAPS[base]) drawMap(x, MAPS[base], { ...PAL, ...gdef.pal }, S, S * h); else drawShape(x, gdef.shape, gdef.pal, h, frame);
+      cache.set(key, c); return c;
+    }
     let name = t;
     if (t === 'bush') name = obj.b ? 'bush_b' : 'bush';
     if (t === 'campfire') name = frame ? 'campfire2' : 'campfire';
@@ -343,7 +428,16 @@
     if (cache.has(key)) return cache.get(key);
     const it = D.ITEMS[id] || {};
     let c;
-    if (it.vehicle) {
+    if (it.cat === 'mat' && it.color) { // ingot / bundle
+      c = mk(16, 16); const x = ctxOf(c); const col = it.color; R(x, 3, 6, 10, 6, col); R(x, 3, 6, 10, 1, shade(col, 0.3)); R(x, 3, 11, 10, 1, shade(col, -0.35)); R(x, 12, 6, 1, 6, shade(col, -0.35)); R(x, 2, 9, 12, 4, shade(col, -0.15)); R(x, 2, 12, 12, 1, shade(col, -0.4));
+    } else if (it.cat === 'weapon') {
+      c = mk(16, 16); const x = ctxOf(c); const gun = /gun|rifle|revolver|laser|taser|smg|rail|shot/.test(id) || id === 'sling' || id === 'bow' || id === 'crossbow';
+      if (gun) { R(x, 2, 7, 11, 3, '#3a3a3a'); R(x, 11, 6, 3, 2, '#555'); R(x, 4, 10, 3, 4, '#7a4a22'); R(x, 7, 10, 2, 2, '#3a3a3a'); if (/laser|plasma|rail|taser/.test(id)) R(x, 3, 8, 8, 1, '#7cf2ff'); }
+      else { for (let i = 0; i < 9; i++) R(x, 3 + i, 12 - i, 2, 1, '#d6e4f0'); for (let i = 0; i < 9; i++) P(x, 4 + i, 12 - i, '#8fa3b8'); R(x, 2, 12, 4, 1, '#f7d94c'); R(x, 2, 13, 2, 2, '#7a4a22'); if (/club|mace|hammer|axe/.test(id)) { R(x, 9, 2, 5, 5, '#8a8a8a'); } }
+    } else if (it.food && !ICON_MAPS[id] && !CROP_ICON[id]) {
+      c = mk(16, 16); const x = ctxOf(c); const h = hash(id.length, id.charCodeAt(0), 7); const col = ['#f28c28', '#e63946', '#f5d33f', '#9fd59a', '#ffe08a', '#d62828', '#c9a063'][Math.floor(h * 7)];
+      R(x, 2, 10, 12, 3, '#ececec'); R(x, 3, 13, 10, 1, '#bdbdbd'); R(x, 4, 6, 8, 4, col); R(x, 5, 5, 6, 1, shade(col, 0.3)); P(x, 6, 7, shade(col, -0.3)); P(x, 9, 8, shade(col, 0.4)); if (/tea|coffee|shake|smoothie|wine/.test(id)) { R(x, 5, 3, 6, 9, col); R(x, 5, 3, 6, 1, '#ffffff'); R(x, 4, 12, 8, 1, '#ececec'); }
+    } else if (it.vehicle) {
       const spr = vehicleSprite(it.vehicle, 'right', 0); c = mk(16, 16); const x = ctxOf(c);
       if (spr.width === 24) x.drawImage(spr, 0, 0, 24, 16, 0, 3, 16, 11); else x.drawImage(spr, 0, 0);
     } else if (id === 'axe_iron' || id === 'pickaxe_iron') {
@@ -458,6 +552,19 @@
     era_modern: ['................', '.....uu.........', '.....uu...gg....', '..gg.uu...gg....', '..gg.uu.uugg....', '..gguuuuuugg....', '..ggu.uuu.gg....', '..gguuuuuugguu..', '..ggu.uuu.gguu..', '..gguuuuuugguu..', '..ggu.uuu.gguu..', '..gguuuuuugguu..', '..gguuuuuugguu..', '................', '................', '................'],
     xp: ['................', '................', '.......aa.......', '......aaaa......', '.....aaaaaa.....', '....aaaaaaaa....', '...aaaaaaaaaa...', '.....aaaaaa.....', '.....aaaaaa.....', '.....aaaaaa.....', '.....aaaaaa.....', '.....aaaaaa.....', '................', '................', '................', '................'],
   };
+  // recolor saturated pixels toward a target hue/sat (keeps lightness) - used for vehicle variants
+  function tint(c, hex) {
+    const n = parseInt(hex.slice(1), 16); const tr = (n >> 16) / 255, tg = ((n >> 8) & 255) / 255, tb = (n & 255) / 255;
+    const tmax = Math.max(tr, tg, tb), tmin = Math.min(tr, tg, tb); const tl = (tmax + tmin) / 2; let th = 0, ts = 0;
+    if (tmax !== tmin) { const dd = tmax - tmin; ts = tl > 0.5 ? dd / (2 - tmax - tmin) : dd / (tmax + tmin); if (tmax === tr) th = (tg - tb) / dd + (tg < tb ? 6 : 0); else if (tmax === tg) th = (tb - tr) / dd + 2; else th = (tr - tg) / dd + 4; th /= 6; }
+    const x = c.getContext('2d'); const img = x.getImageData(0, 0, c.width, c.height); const d = img.data;
+    for (let i = 0; i < d.length; i += 4) {
+      if (!d[i + 3]) continue; const r = d[i] / 255, g = d[i + 1] / 255, b = d[i + 2] / 255; const max = Math.max(r, g, b), min = Math.min(r, g, b); const l = (max + min) / 2; if (max === min) continue; const dd = max - min; const sat = l > 0.5 ? dd / (2 - max - min) : dd / (max + min); if (sat < 0.25) continue;
+      const q = l < 0.5 ? l * (1 + ts) : l + ts - l * ts, pp = 2 * l - q; const f = (t) => { t = ((t % 1) + 1) % 1; if (t < 1 / 6) return pp + (q - pp) * 6 * t; if (t < 1 / 2) return q; if (t < 2 / 3) return pp + (q - pp) * (2 / 3 - t) * 6; return pp; };
+      if (ts < 0.1) { const v = Math.round(l * 255); d[i] = v; d[i + 1] = v; d[i + 2] = v; } else { d[i] = Math.round(f(th + 1 / 3) * 255); d[i + 1] = Math.round(f(th) * 255); d[i + 2] = Math.round(f(th - 1 / 3) * 255); }
+    }
+    x.putImageData(img, 0, 0); return c;
+  }
   function hueShift(c, deg) {
     const x = c.getContext('2d'); const img = x.getImageData(0, 0, c.width, c.height); const d = img.data;
     for (let i = 0; i < d.length; i += 4) {

@@ -496,7 +496,7 @@ window.Game = (() => {
     mctx.fillStyle = '#1c2a38'; mctx.fillRect(0, 0, 160, 160);
     for (let dy = -R; dy < R; dy++) for (let dx = -R; dx < R; dx++) {
       const x = px + dx, y = py + dy; const t = tileAt(x, y); if (t < 0) continue;
-      let c = MINI[t] || '#f0f';
+      let c = MINI[t] || (D.TILES[t] && D.TILES[t].gen ? D.TILES[t].gen.a : '#f0f');
       const o = objAt(x, y);
       if (o) { if (['tree', 'pine', 'palm'].includes(o.t)) c = '#2e6b2a'; else if (o.t === 'rock' || o.t === 'bigrock') c = '#666'; else if (o.o || o.t === 'shop') c = o.t === 'crop' ? '#e0a020' : '#f3dfb5'; }
       mctx.fillStyle = c; mctx.fillRect((dx + R) * s, (dy + R) * s, s, s);
@@ -532,6 +532,7 @@ window.Game = (() => {
       if (k >= '1' && k <= '5') selectItem(+k - 1);
       else if (k >= '6' && k <= '9') selectTool(+k - 6);
       else if (k === '0') selectTool(4);
+      else if (k === '-') selectTool(5);
       else if (k === 'tab') { if (st.sel.zone === 'tool') selectTool(st.sel.i + 1); else selectTool(0); e.preventDefault(); }
       else if (k === 'e') { const f = facing(); useAt(f.x, f.y, 'hand'); }
       else if (k === ' ') { const f = facing(); useAt(f.x, f.y, selectedId()); e.preventDefault(); }

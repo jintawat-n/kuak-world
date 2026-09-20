@@ -168,22 +168,25 @@
     <div id="pInv" class="panel modal-panel hidden">
       <div class="ph"><h3><img class="ui-ic" data-ic="bag" alt=""> กระเป๋า</h3><button class="x" data-close>✕</button></div>
       <div class="tabs small" id="invTabs">
-        <button class="tab active" data-cat="all">ทั้งหมด</button><button class="tab" data-cat="tool">เครื่องมือ</button><button class="tab" data-cat="mat">วัตถุดิบ</button><button class="tab" data-cat="food">อาหาร</button><button class="tab" data-cat="seed">เมล็ด</button><button class="tab" data-cat="build">ก่อสร้าง</button><button class="tab" data-cat="furn">เฟอร์นิเจอร์</button><button class="tab" data-cat="vehicle">พาหนะ</button>
+        <button class="tab active" data-cat="all">ทั้งหมด</button><button class="tab" data-cat="tool">เครื่องมือ</button><button class="tab" data-cat="mat">วัตถุดิบ</button><button class="tab" data-cat="food">อาหาร</button><button class="tab" data-cat="seed">เมล็ด</button><button class="tab" data-cat="build">ก่อสร้าง</button><button class="tab" data-cat="furn">เฟอร์นิเจอร์</button><button class="tab" data-cat="weapon">อาวุธ</button><button class="tab" data-cat="vehicle">พาหนะ</button>
       </div>
       <div class="hint">คลิกไอเทมเพื่อใส่ช่องด่วนที่เลือกอยู่ · คลิกขวาอาหารเพื่อกิน</div>
       <div id="invGrid" class="grid"></div>
     </div>
 
     <div id="pCraft" class="panel modal-panel hidden">
-      <div class="ph"><h3><img class="ui-ic" data-item="hammer" alt=""> คราฟต์</h3><button class="x" data-close>✕</button></div>
-      <div class="tabs small" id="craftTabs"><button class="tab active" data-cat="all">ทั้งหมด</button><button class="tab" data-cat="tool">เครื่องมือ</button><button class="tab" data-cat="build">ก่อสร้าง</button><button class="tab" data-cat="furn">เฟอร์นิเจอร์</button><button class="tab" data-cat="vehicle">พาหนะ</button></div>
+      <div class="ph"><h3><img class="ui-ic" data-item="hammer" alt=""> คราฟต์ <span class="muted" id="craftCount"></span></h3><button class="x" data-close>✕</button></div>
+      <div class="tabs small" id="craftEras"></div>
+      <div class="tabs small" id="craftTabs"><button class="tab active" data-cat="all">ทั้งหมด</button><button class="tab" data-cat="mat">วัสดุ</button><button class="tab" data-cat="build">ก่อสร้าง</button><button class="tab" data-cat="furn">เฟอร์นิเจอร์</button><button class="tab" data-cat="tool">เครื่องมือ</button><button class="tab" data-cat="weapon">อาวุธ</button><button class="tab" data-cat="vehicle">พาหนะ</button></div>
+      <div class="row gap" style="margin-bottom:8px"><input id="craftQ" placeholder="ค้นหาสูตร..." style="flex:1"><label class="chk"><input type="checkbox" id="craftLocked"> แสดงที่ยังล็อก</label><label class="chk"><input type="checkbox" id="craftCan"> เฉพาะที่ทำได้</label></div>
       <div class="hint" id="craftHint"></div>
       <div id="craftList" class="list"></div>
     </div>
 
     <div id="pCook" class="panel modal-panel hidden">
-      <div class="ph"><h3><img class="ui-ic" data-ic="cook" alt=""> ทำอาหาร</h3><button class="x" data-close>✕</button></div>
-      <div class="hint">ต้องอยู่ใกล้เตาหรือกองไฟ · อาหารปรุงสุกฟื้นฟูมากกว่าและขายได้ราคาดี</div>
+      <div class="ph"><h3><img class="ui-ic" data-ic="cook" alt=""> ทำอาหาร <span class="muted" id="cookCount"></span></h3><button class="x" data-close>✕</button></div>
+      <div class="hint">ต้องอยู่ใกล้เตาหรือกองไฟ (หรือมีบัฟครัวพกพา) · อาหารปรุงสุกฟื้นฟูมากกว่าและขายได้ราคาดี · เมนูยุคหลังต้องถึงเลเวล</div>
+      <div class="row gap" style="margin-bottom:8px"><input id="cookQ" placeholder="ค้นหาเมนู..." style="flex:1"><label class="chk"><input type="checkbox" id="cookLocked"> แสดงที่ยังล็อก</label></div>
       <div id="cookList" class="list"></div>
     </div>
 
@@ -223,7 +226,7 @@
 
     <div id="pEra" class="panel modal-panel hidden">
       <div class="ph"><h3><img class="ui-ic" data-ic="scroll" alt=""> ยุคสมัยและการปลดล็อก</h3><button class="x" data-close>✕</button></div>
-      <div class="hint">ได้ XP จากตัดไม้ ขุดหิน เก็บของป่า ปลูก/รดน้ำ/เก็บเกี่ยว คราฟต์ ทำอาหาร สร้างสิ่งของ และขายของ · เลเวลอัปได้โบนัสเหรียญ</div>
+      <div class="hint">ได้ XP จากตัดไม้ ขุดหิน เก็บของป่า ปลูก/รดน้ำ/เก็บเกี่ยว คราฟต์ ทำอาหาร สร้างสิ่งของ ล่ามอนสเตอร์ และขายของ · เลเวลอัปได้โบนัสเหรียญ · แต่ละยุคมีของ 100 ชิ้น (วัสดุ พื้น ผนัง ประตู เฟอร์นิเจอร์ ของตกแต่ง แสงไฟ เครื่องมือ อาวุธ อาหาร พาหนะ)</div>
       <div id="eraList"></div>
     </div>
 
@@ -262,6 +265,7 @@
 
 <script src="js/defs.js"></script>
 <script src="js/classes.js"></script>
+<script src="js/items_gen.js"></script>
 <script src="js/sprites.js"></script>
 <script src="js/net.js"></script>
 <script src="js/game.js"></script>
