@@ -434,19 +434,21 @@ function shop(s, buy, itemId, n) {
 
 // ---------------- combat ----------------
 function mobKill(s, mob, x, y) {
-  const p = s.p; const def = D.MOBS.slime.variants[mob.v];
+  const p = s.p; const def = MOBS.defOf(mob);
   MOBS.kill(mob);
-  broadcastNear(mob.x, mob.y, { t: 'mob_die', id: mob.id, x: mob.x, y: mob.y, v: mob.v });
+  broadcastNear(mob.x, mob.y, { t: 'mob_die', id: mob.id, x: mob.x, y: mob.y, v: mob.v, k: mob.t, size: mob.size || 1 });
   const got = []; const lootP = D.passive(p.cls, 'mobLoot') + SK.buffVal(s, 'loot', 0);
-  for (const [it, mn, mx, ch] of D.MOBS.slime.drops) {
+  let first = false;
+  for (const [it, mn, mx, ch] of def.drops || []) {
     let chance = ch; if (it === 'essence') chance = Math.max(ch, D.passive(p.cls, 'essence') / 100);
     if (Math.random() > chance) continue;
-    let n = mn + Math.floor(Math.random() * (mx - mn + 1)); if (it === 'gel') n += lootP;
+    let n = mn + Math.floor(Math.random() * (mx - mn + 1)); if (!first) { n += lootP; first = true; }
     const a = give(p, it, n); if (a) got.push(`+${a} ${D.ITEMS[it].th}`);
   }
   const ck = D.passive(p.cls, 'coinKill'); if (ck) { p.coins += ck; got.push(`+${ck} เหรียญ`); sendMe(s, ['coins']); }
-  toast(s, `กำจัด${def.th}แล้ว ${got.join('  ')}`, 'get');
-  sendMe(s, ['inv']); addXp(s, def.xp); db.putPlayer(p);
+  p.bestiary = p.bestiary || {}; const key = mob.t === 'slime' ? 'slime' + mob.v : mob.t; const isNew = !p.bestiary[key]; p.bestiary[key] = (p.bestiary[key] || 0) + 1;
+  toast(s, `${isNew ? 'ชนิดใหม่! ' : ''}ล่า${def.th}ได้ ${got.join('  ')}`, 'get');
+  sendMe(s, ['inv', 'bestiary']); addXp(s, (def.xp || 10) + (isNew ? 15 : 0)); db.putPlayer(p);
 }
 function melee(s, mob, itemId) {
   const p = s.p; const now = Date.now();
@@ -455,10 +457,11 @@ function melee(s, mob, itemId) {
   const dmg = Math.round(((D.MELEE[itemId] || 3) + D.passive(p.cls, 'meleePlus')) * SK.buffVal(s, 'dmg', 1));
   s.anim = { a: D.ITEMS[itemId].tool || 'hand', until: now + 300, tx: Math.floor(mob.x), ty: Math.floor(mob.y) };
   broadcastNear(mob.x, mob.y, { t: 'mob_hit', id: mob.id, dmg, x: mob.x, y: mob.y });
-  if (MOBS.damage(mob, dmg, p.x, p.y)) mobKill(s, mob);
+  if (MOBS.damage(mob, dmg, p.x, p.y, s)) mobKill(s, mob);
 }
 function hurtPlayer(s, dmg, mob) {
   const p = s.p; if (!p || p.state === 'fainted') return;
+  if (nearTown(Math.floor(p.x), Math.floor(p.y))) return;
   dmg = Math.round(dmg * (1 - D.passive(p.cls, 'defense') / 100) * (1 - SK.buffVal(s, 'def', 0)));
   const b = SK.buffs(s); if (b.shield && b.shield.val > 0) { const ab = Math.min(b.shield.val, dmg); b.shield.val -= ab; dmg -= ab; if (b.shield.val <= 0) delete b.shield; SK.sendBuffs(s); }
   if (dmg <= 0) return;
@@ -505,6 +508,7 @@ function chat(s, m) {
     const [cmd, arg] = text.slice(1).split(/\s+/);
     if (cmd === 'time') { db.world.time = Math.floor(((Number(arg) || 0) / 24) * D.DAY_SECONDS); broadcastAll({ t: 'time', time: db.world.time, online: online.size }); return toast(s, `ตั้งเวลา ${arg}:00`, 'info'); }
     if (cmd === 'spawn') { const mob = MOBS.spawnNear(p.x, p.y, p.level); return toast(s, mob ? 'เกิดสไลม์แล้ว' : 'หาที่เกิดไม่ได้ (ต้องอยู่นอกเมืองบนหญ้า)', 'info'); }
+    if (cmd === 'animal') { const mob = MOBS.spawnAnimalNear(p.x, p.y, 30, MOBS.isNight(db.world.time), arg || null); return toast(s, mob ? 'เกิด ' + MOBS.defOf(mob).th : 'หาที่เกิดไม่ได้', 'info'); }
     if (cmd === 'give') { const [it, n] = [arg, Number(text.split(/\s+/)[2]) || 1]; give(p, it, n); sendMe(s, ['inv']); return; }
     if (cmd === 'lv') { p.level = Number(arg) || 1; sendMe(s, ['level']); return; }
     if (cmd === 'coins') { p.coins += Number(arg) || 0; sendMe(s, ['coins']); return; }
@@ -741,7 +745,7 @@ function enter(s, p) {
   const prev = online.get(p.id);
   if (prev && prev !== s) { send(prev.ws, { t: 'kick', reason: 'มีการเข้าสู่ระบบจากที่อื่น' }); prev.p = null; prev.ws.close(); sessions.delete(prev); }
   s.p = p; p.lastSeen = Date.now(); p.state = null; s.lastActive = Date.now();
-  p.level = p.level || 1; p.xp = p.xp || 0; p.vehicle = p.vehicle || null; if (p.hp == null) p.hp = 100; if (p.cls && !D.CLASSES[p.cls]) p.cls = null; p.fishdex = p.fishdex || {};
+  p.level = p.level || 1; p.xp = p.xp || 0; p.vehicle = p.vehicle || null; if (p.hp == null) p.hp = 100; if (p.cls && !D.CLASSES[p.cls]) p.cls = null; p.fishdex = p.fishdex || {}; p.bestiary = p.bestiary || {};
   // migrate old 8-slot hotbar (tools mixed in) -> item-only zone
   if (!Array.isArray(p.hotbar) || p.hotbar.length !== D.ITEM_SLOTS || p.hotbar.some(x => x && D.ITEMS[x] && D.ITEMS[x].cat === 'tool')) {
     const items = (p.hotbar || []).filter(x => x && D.ITEMS[x] && D.ITEMS[x].cat !== 'tool');

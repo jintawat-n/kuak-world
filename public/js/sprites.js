@@ -451,6 +451,10 @@
       c = mk(16, 16); const x = ctxOf(c); const gun = /gun|rifle|revolver|laser|taser|smg|rail|shot/.test(id) || id === 'sling' || id === 'bow' || id === 'crossbow';
       if (gun) { R(x, 2, 7, 11, 3, '#3a3a3a'); R(x, 11, 6, 3, 2, '#555'); R(x, 4, 10, 3, 4, '#7a4a22'); R(x, 7, 10, 2, 2, '#3a3a3a'); if (/laser|plasma|rail|taser/.test(id)) R(x, 3, 8, 8, 1, '#7cf2ff'); }
       else { for (let i = 0; i < 9; i++) R(x, 3 + i, 12 - i, 2, 1, '#d6e4f0'); for (let i = 0; i < 9; i++) P(x, 4 + i, 12 - i, '#8fa3b8'); R(x, 2, 12, 4, 1, '#f7d94c'); R(x, 2, 13, 2, 2, '#7a4a22'); if (/club|mace|hammer|axe/.test(id)) { R(x, 9, 2, 5, 5, '#8a8a8a'); } }
+    } else if (id === 'egg' || id === 'dino_egg') {
+      c = mk(16, 16); const x = ctxOf(c); const col = id === 'egg' ? '#f5e6c8' : '#9fd59a'; R(x, 5, 3, 6, 10, col); R(x, 4, 5, 8, 6, col); R(x, 6, 4, 2, 2, '#ffffff'); if (id === 'dino_egg') { P(x, 6, 8, '#4e9e3c'); P(x, 9, 10, '#4e9e3c'); P(x, 8, 6, '#4e9e3c'); }
+    } else if (id === 'meat' || id === 'poultry' || id === 'dino_meat') {
+      c = mk(16, 16); const x = ctxOf(c); const col = id === 'poultry' ? '#e8b4a0' : id === 'dino_meat' ? '#8e2a2a' : '#c0392b'; R(x, 3, 5, 9, 7, col); R(x, 4, 4, 7, 1, shade(col, 0.2)); R(x, 11, 8, 4, 2, '#e8e0c8'); P(x, 14, 7, '#e8e0c8'); P(x, 14, 10, '#e8e0c8'); P(x, 6, 7, shade(col, 0.3));
     } else if (it.food && !ICON_MAPS[id] && !CROP_ICON[id]) {
       c = mk(16, 16); const x = ctxOf(c); const h = hash(id.length, id.charCodeAt(0), 7); const col = ['#f28c28', '#e63946', '#f5d33f', '#9fd59a', '#ffe08a', '#d62828', '#c9a063'][Math.floor(h * 7)];
       R(x, 2, 10, 12, 3, '#ececec'); R(x, 3, 13, 10, 1, '#bdbdbd'); R(x, 4, 6, 8, 4, col); R(x, 5, 5, 6, 1, shade(col, 0.3)); P(x, 6, 7, shade(col, -0.3)); P(x, 9, 8, shade(col, 0.4)); if (/tea|coffee|shake|smoothie|wine/.test(id)) { R(x, 5, 3, 6, 9, col); R(x, 5, 3, 6, 1, '#ffffff'); R(x, 4, 12, 8, 1, '#ececec'); }
@@ -494,6 +498,109 @@
     const pal = { m: hurt ? '#ffffff' : shade(col, -0.35), M: hurt ? '#ffdddd' : col, w: '#ffffff', z: '#1b1b1b' };
     drawMap(x, SLIME[frame ? 1 : 0], pal, S, S);
     if (!hurt) { P(x, 5, frame ? 7 : 5, shade(col, 0.45)); P(x, 6, frame ? 7 : 5, shade(col, 0.45)); }
+    cache.set(key, c); return c;
+  }
+
+  // ---------------- ANIMALS (procedural, 32x32 grid, facing right) ----------------
+  function animalSprite(id, frame, hurt) {
+    const key = `an_${id}_${frame ? 1 : 0}_${hurt ? 1 : 0}`;
+    if (cache.has(key)) return cache.get(key);
+    const a = D.ANIMALS[id]; const c = mk(32, 32), x = ctxOf(c);
+    const C = hurt ? '#ffffff' : a.color, C2 = hurt ? '#ffdddd' : a.color2, Cd = shade(a.color, -0.35), eye = '#111', beak = '#f28c28';
+    const f = frame ? 1 : 0; const B = 32; // baseline at y=30
+    const legs = (x0, w, n, h, gap) => { for (let i = 0; i < n; i++) { const off = (i % 2 === f) ? 1 : 0; R(x, x0 + i * gap, B - 2 - h + off, w, h - off, Cd); } };
+    const has = (k) => a.drops.some(d => d[0] === k);
+    switch (a.shape) {
+      case 'quad_s': case 'quad': case 'quad_b': case 'tall': {
+        const big = a.shape === 'quad_b', small = a.shape === 'quad_s', tall = a.shape === 'tall';
+        const bh = big ? 12 : small ? 7 : 9, bw = big ? 20 : small ? 12 : 16, bx = 4, by = B - 2 - (big ? 7 : small ? 5 : 6) - bh;
+        R(x, bx, by, bw, bh, C); R(x, bx + 2, by + bh - 3, bw - 4, 3, C2); // body + belly
+        // head
+        const hx = bx + bw - 2, hy = tall ? by - 12 : by - (big ? 4 : 3); const hw = big ? 9 : small ? 6 : 7, hh = big ? 8 : small ? 5 : 6;
+        if (tall) { R(x, hx - 1, by - 10, 4, 11, C); for (let i = 0; i < 4; i++) P(x, hx, by - 8 + i * 3, C2); }
+        R(x, hx, hy, hw, hh, C); P(x, hx + hw - 2, hy + 2, eye); R(x, hx + hw - 1, hy + hh - 2, 1, 1, Cd);
+        R(x, hx + 1, hy - 2, 2, 2, C); R(x, hx + hw - 3, hy - 2, 2, 2, C); // ears
+        if (has('horn')) { R(x, hx + 1, hy - 5, 1, 4, '#e8e0c8'); R(x, hx + hw - 2, hy - 5, 1, 4, '#e8e0c8'); }
+        if (has('ivory')) { R(x, hx + hw - 1, hy + hh - 4, 3, 1, '#fdf6e3'); R(x, hx + hw, hy + hh - 1, 2, 5, C); } // tusk + trunk
+        if (a.id === 'lion') { R(x, hx - 2, hy - 2, 4, hh + 4, '#8a5a2a'); }
+        if (a.id === 'tiger' || a.id === 'zebra') for (let i = 0; i < bw; i += 4) R(x, bx + i, by, 1, bh, C2);
+        if (a.id === 'leopard' || a.id === 'snow_leopard' || a.id === 'giraffe') for (let i = 2; i < bw - 2; i += 4) for (let j = 1; j < bh - 2; j += 4) P(x, bx + i, by + j, C2);
+        if (a.id === 'cow' || a.id === 'panda' || a.id === 'buffalo') { R(x, bx + 3, by + 1, 4, 4, C2); R(x, bx + bw - 7, by + 2, 4, 3, C2); }
+        if (a.id === 'sheep' || a.id === 'yak' || a.id === 'mammoth') { for (let i = 0; i < bw; i += 3) P(x, bx + i, by - 1, C2); }
+        if (a.id === 'unicorn') { R(x, hx + 3, hy - 6, 1, 5, '#ffd166'); }
+        R(x, bx - 3, by + 1, 3, 2, Cd); // tail
+        legs(bx + 1, big ? 3 : 2, big ? 4 : 4, big ? 7 : small ? 5 : 6, big ? 5 : small ? 3 : 4);
+        break;
+      }
+      case 'small': { R(x, 8, 18, 14, 9, C); R(x, 10, 24, 10, 3, C2); R(x, 19, 14, 8, 7, C); P(x, 25, 16, eye); R(x, 20, 12, 2, 2, C); R(x, 24, 12, 2, 2, C); R(x, 4, 16, 4, 3, Cd); legs(10, 2, 3, 3, 4); if (a.id === 'pangolin' || a.id === 'turtle') for (let i = 0; i < 12; i += 3) R(x, 9 + i, 18, 2, 1, Cd); break; }
+      case 'long': { for (let i = 0; i < 24; i++) { const yy = 22 + Math.round(Math.sin((i + f * 2) / 3) * 2); R(x, 3 + i, yy, 1, 5, i % 4 < 2 ? C : C2); } R(x, 25, 19, 6, 6, C); P(x, 29, 21, eye); R(x, 31, 23, 1, 1, '#e63946'); if (a.id === 'croc' || a.id === 'lizard') { legs(8, 2, 2, 3, 10); for (let i = 0; i < 6; i++) P(x, 5 + i * 4, 20, Cd); } break; }
+      case 'bird': case 'bird_b': {
+        const big = a.shape === 'bird_b'; const bw = big ? 12 : 9, bh = big ? 8 : 6, bx = 8, by = B - 2 - (big ? 9 : 4) - bh;
+        R(x, bx, by, bw, bh, C); R(x, bx + 2, by + bh - 2, bw - 4, 2, C2);
+        if (big) { R(x, bx + bw - 2, by - 8, 3, 9, C); R(x, bx + bw - 3, by - 12, 6, 5, C); P(x, bx + bw + 1, by - 10, eye); R(x, bx + bw + 3, by - 9, 3, 2, beak); }
+        else { R(x, bx + bw - 2, by - 4, 5, 5, C); P(x, bx + bw + 1, by - 2, eye); R(x, bx + bw + 3, by - 1, 3, 1, beak); }
+        R(x, bx + 1, by + 1, 5, 3, C2); // wing
+        R(x, bx - 3, by - 1, 3, 2, C2); // tail
+        if (a.id === 'peacock') for (let i = 0; i < 5; i++) { R(x, bx - 4 - i, by - 6 + i, 2, 8 - i, i % 2 ? C2 : C); }
+        legs(bx + 3, 1, 2, big ? 9 : 4, 4);
+        break;
+      }
+      case 'fly': case 'fly_b': {
+        const big = a.shape === 'fly_b'; const bw = big ? 12 : 8, bh = big ? 6 : 4, bx = 10, by = 14;
+        R(x, bx, by, bw, bh, C); R(x, bx + bw - 1, by - 2, 5, 4, C); P(x, bx + bw + 2, by - 1, eye); R(x, bx + bw + 4, by, 3, 1, beak);
+        const wy = f ? by - 6 : by + 2; const wh = 5;
+        for (let i = 0; i < (big ? 10 : 7); i++) { R(x, bx + 1 + i, f ? wy + i * 0.6 : wy + 3 - i * 0.5, 1, wh, i % 2 ? C2 : C); R(x, bx + bw - 2 - i, f ? wy + i * 0.6 : wy + 3 - i * 0.5, 1, wh, i % 2 ? C2 : C); }
+        R(x, bx - 3, by + 1, 3, 2, C2);
+        break;
+      }
+      case 'raptor': case 'trex': {
+        const big = a.shape === 'trex'; const bw = big ? 14 : 10, bh = big ? 10 : 6, bx = 8, by = B - 2 - (big ? 10 : 7) - bh;
+        for (let i = 0; i < 8; i++) R(x, bx - 8 + i, by + 3 + Math.round(i * 0.4), 1, big ? 4 - Math.floor(i / 3) : 3 - Math.floor(i / 3), C); // tail
+        R(x, bx, by, bw, bh, C); R(x, bx + 2, by + bh - 3, bw - 4, 3, C2);
+        const hw = big ? 11 : 7, hh = big ? 8 : 5; const hx = bx + bw - 3, hy = by - hh + 2;
+        R(x, hx, hy, hw, hh, C); P(x, hx + hw - 3, hy + 2, eye); R(x, hx + 2, hy + hh - 1, hw - 3, 1, Cd);
+        if (big) for (let i = 0; i < hw - 4; i += 2) P(x, hx + 2 + i, hy + hh - 2, '#fff'); // teeth
+        R(x, bx + bw - 3, by + bh - 1, 2, 3, Cd); // arm
+        if (a.id === 'dilo' || a.id === 'carnotaurus') { R(x, hx + 3, hy - 3, 2, 3, C2); R(x, hx + hw - 4, hy - 3, 2, 3, C2); }
+        if (a.id === 'parasaur') R(x, hx + 1, hy - 5, 2, 6, C2);
+        if (a.id === 'dino_king') { R(x, hx + 2, hy - 4, 7, 4, '#ffd166'); P(x, hx + 3, hy - 5, '#ffd166'); P(x, hx + 7, hy - 5, '#ffd166'); }
+        legs(bx + 3, big ? 4 : 3, 2, big ? 10 : 7, big ? 7 : 5);
+        break;
+      }
+      case 'sauro': {
+        R(x, 6, 16, 16, 9, C); R(x, 8, 22, 12, 3, C2);
+        for (let i = 0; i < 9; i++) R(x, 5 - i * 0.5, 17 + i * 0.3, 1, 4 - Math.floor(i / 3), C); // tail
+        for (let i = 0; i < 10; i++) R(x, 21 + i * 0.6, 15 - i, 3, 2, C); // neck
+        R(x, 25, 3, 6, 4, C); P(x, 29, 4, eye); legs(8, 3, 4, 7, 4);
+        break;
+      }
+      case 'cera': {
+        R(x, 6, 16, 16, 9, C); R(x, 8, 22, 12, 3, C2); R(x, 2, 18, 4, 3, C);
+        R(x, 20, 9, 8, 10, C2); R(x, 22, 12, 9, 7, C); P(x, 29, 14, eye); // frill + head
+        R(x, 27, 8, 1, 5, '#e8e0c8'); R(x, 30, 9, 1, 4, '#e8e0c8'); R(x, 31, 15, 1, 3, '#e8e0c8');
+        legs(8, 3, 4, 7, 4);
+        break;
+      }
+      case 'stego': {
+        R(x, 6, 17, 17, 8, C); R(x, 8, 22, 13, 3, C2); for (let i = 0; i < 6; i++) { R(x, 7 + i * 3, 11 + (i % 2) * 2, 2, 6 - (i % 2) * 2, C2); }
+        R(x, 22, 19, 7, 5, C); P(x, 27, 21, eye); R(x, 2, 19, 4, 3, C); P(x, 1, 18, '#e8e0c8'); P(x, 1, 22, '#e8e0c8');
+        legs(8, 3, 4, 7, 4);
+        if (a.id === 'dimetrodon') { for (let i = 0; i < 12; i++) R(x, 8 + i, 8 + Math.abs(i - 6), 1, 10 - Math.abs(i - 6), i % 2 ? C2 : C); }
+        break;
+      }
+      case 'anky': {
+        R(x, 4, 19, 20, 7, C); R(x, 6, 24, 16, 2, C2); for (let i = 0; i < 9; i++) for (let j = 0; j < 2; j++) P(x, 6 + i * 2, 20 + j * 3, Cd);
+        R(x, 23, 20, 7, 5, C); P(x, 28, 22, eye); R(x, 0, 21, 4, 2, C); R(x, 0, 19, 3, 5, Cd); legs(7, 3, 4, 5, 4);
+        break;
+      }
+      case 'ptero': {
+        const wy = f ? 8 : 16;
+        for (let i = 0; i < 12; i++) { R(x, 3 + i, f ? wy + i : wy + 6 - i * 0.5, 1, 4, i % 3 ? C2 : C); R(x, 28 - i, f ? wy + i : wy + 6 - i * 0.5, 1, 4, i % 3 ? C2 : C); }
+        R(x, 12, 17, 9, 5, C); R(x, 20, 14, 7, 4, C); R(x, 26, 15, 5, 2, Cd); R(x, 19, 10, 3, 5, C2); P(x, 24, 15, eye);
+        break;
+      }
+      default: R(x, 8, 16, 16, 12, C);
+    }
     cache.set(key, c); return c;
   }
 
@@ -615,5 +722,5 @@
 
   const BOBBER = ['................', '................', '................', '................', '................', '.......rr.......', '......rrrr......', '......rrrr......', '......wwww......', '......wwww......', '.......ww.......', '................', '................', '................', '................', '................'];
   function bobberSprite(bite) { const key = 'bobber' + (bite ? 1 : 0); if (cache.has(key)) return cache.get(key); const c = mk(16, 16), x = ctxOf(c); drawMap(x, BOBBER, { r: '#e63946', w: '#ffffff' }, 16, 16); if (bite) { R(x, 5, 3, 6, 1, '#7cc4f0'); R(x, 4, 11, 8, 1, '#7cc4f0'); } cache.set(key, c); return c; }
-  window.Sprites = { uiIcon: uiIconURL, uiIconCanvas, mob: mobSprite, bobber: bobberSprite, fishIcon, tile: tileSprite, obj: objSprite, crop: cropSprite, char: charSprite, vehicle: vehicleSprite, item: itemIcon, iconURL: iconDataURL, hash, shade, mk, ctxOf };
+  window.Sprites = { uiIcon: uiIconURL, uiIconCanvas, mob: mobSprite, bobber: bobberSprite, fishIcon, animal: animalSprite, tile: tileSprite, obj: objSprite, crop: cropSprite, char: charSprite, vehicle: vehicleSprite, item: itemIcon, iconURL: iconDataURL, hash, shade, mk, ctxOf };
 })();

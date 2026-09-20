@@ -94,7 +94,7 @@
     <div class="panel clock"><img class="ui-ic" id="clockIcon" data-ic="sun" alt=""> <b id="clock">08:00</b> <span class="muted" id="online">· 1 ออนไลน์</span></div>
     <canvas id="minimap" width="160" height="160" class="panel"></canvas>
     <div class="hud-btns">
-      <button class="hbtn" id="btnFish" title="สมุดปลา (N)"><img class="ui-ic big" data-ic="fish" alt=""></button>
+      <button class="hbtn" id="btnFish" title="สมุดสิ่งมีชีวิต (N)"><img class="ui-ic big" data-ic="fish" alt=""></button>
       <button class="hbtn" id="btnEra" title="ยุคและการปลดล็อก (L)"><img class="ui-ic big" data-ic="scroll" alt=""></button>
       <button class="hbtn" id="btnMap" title="แผนที่ (M)"><img class="ui-ic big" data-ic="map" alt=""></button>
       <button class="hbtn" id="btnFriends" title="เพื่อน (F)"><img class="ui-ic big" data-ic="friends" alt=""><span class="badge hidden" id="badgeFriends"></span></button>
@@ -240,7 +240,8 @@
     </div>
 
     <div id="pFish" class="panel modal-panel hidden">
-      <div class="ph"><h3><img class="ui-ic" data-ic="fish" alt=""> สมุดปลา <span class="muted" id="fishCount"></span></h3><button class="x" data-close>✕</button></div>
+      <div class="ph"><h3><img class="ui-ic" data-ic="fish" alt=""> สมุดสิ่งมีชีวิต <span class="muted" id="fishCount"></span></h3><button class="x" data-close>✕</button></div>
+      <div class="tabs small" id="bookGroups"></div>
       <div class="hint" id="fishHint"></div>
       <div class="tabs small" id="fishTabs"></div>
       <input id="fishQ" placeholder="ค้นหาชื่อปลา..." style="width:100%;margin-bottom:8px">
@@ -269,7 +270,7 @@
         <p><b>อาชีพ</b> เลือกที่ครูเพชรฟรีครั้งแรก (เปลี่ยน 200 เหรียญ) มี ชาวไร่ / ช่างก่อสร้าง / พ่อมด / มือปืน แต่ละอาชีพมีโบนัสติดตัวและสกิล 4 อัน กด <b>Z X C V</b> (สกิลเล็งเป้าจะยิงไปที่ช่องใต้เมาส์ หรือคลิกปุ่มสกิลแล้วคลิกเป้า) · ดูรายละเอียดกด J</p>
         <p><b>ตกปลา</b> เลือกเบ็ด (ปุ่ม =) คลิกบนน้ำ รอเครื่องหมาย ! แล้วคลิก/Space · ยืนบนเรือตกกลางทะเลได้ · ปลา 110 ชนิด ดูสถิติในสมุดปลา (N) · ใส่เหยื่อให้ปลากินไว</p>
         <p><b>เรือ</b> คราฟต์ได้ในหมวดพาหนะ (แพ เรือพาย เรือใบ เรือกลไฟ เจ็ตสกี ...) ขึ้นจากชายหาดด้วยปุ่ม "ขี่" ในกระเป๋า</p>
-        <p><b>มอนสเตอร์</b> สไลม์ออกตอนกลางคืน (19:00-05:30) ในป่านอกเมือง เข้ามากัดทำเลือดลด คลิกที่ตัวมันเพื่อตี (เครื่องมือเหล็กแรงสุด) หรือใช้สกิลพ่อมด/มือปืน ล่าได้เมือกสไลม์ แก่นเวท และ XP · ในเขตเมืองปลอดภัย</p>
+        <p><b>สัตว์ป่าและมอนสเตอร์</b> สัตว์บก 50 นก 35 ไดโนเสาร์ 34 ชนิด อยู่ตามพื้นที่ (ทุ่งหญ้า ป่า ชายหาด ภูเขา หิมะ ริมน้ำ) และเวลา · เชื่อง = หนี, สู้กลับ = โจมตีเมื่อถูกตี, ดุร้าย = ไล่ล่า · ไดโนเสาร์อยู่ไกลเมืองเกิน 300 ช่องหรือเขตภูเขา/หิมะ · สไลม์ออกกลางคืน · คลิกที่ตัวเพื่อตี (อาวุธปุ่ม - แรงสุด) หรือใช้สกิล · ล่าได้เนื้อ ไข่ ขนนก หนัง กระดูก เขา งา ฟันไดโน เอาไปทำอาหาร 30+ เมนู · ดูสมุดสิ่งมีชีวิต (N) · ในเขตเมืองปลอดภัย</p>
         <p><b>ปุ่มลัด</b> I กระเป๋า · K คราฟต์ · B ร้านค้า · J อาชีพ · M แผนที่ · L ยุค · F เพื่อน · H กลับบ้าน · G ลงจากพาหนะ · Z X C V สกิล · Esc เมนู/ยกเลิกเล็ง</p>
       </div>
     </div>
@@ -286,6 +287,7 @@
 <script src="js/classes.js"></script>
 <script src="js/items_gen.js"></script>
 <script src="js/fish.js"></script>
+<script src="js/animals.js"></script>
 <script src="js/sprites.js"></script>
 <script src="js/net.js"></script>
 <script src="js/game.js"></script>

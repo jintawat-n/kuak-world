@@ -152,7 +152,7 @@ window.Game = (() => {
 
   // ---------- actions ----------
   function npcAt(tx, ty) { for (const n of st.npcs.values()) if (Math.floor(n.x) === tx && Math.floor(n.y) === ty) return n; return null; }
-  function mobAt(tx, ty) { let best = null, bd = 1e9; for (const m of st.mobs.values()) { const d = Math.hypot(m.x - (tx + 0.5), m.y - (ty + 0.5)); if (d < 0.95 && d < bd) { bd = d; best = m; } } return best; }
+  function mobAt(tx, ty) { let best = null, bd = 1e9; for (const m of st.mobs.values()) { const a = D.ANIMALS[m.t]; const rad = 0.95 + ((a ? a.size : 1) - 1) * 0.5; const d = Math.hypot(m.x - (tx + 0.5), m.y - (ty + 0.5)); if (d < rad && d < bd) { bd = d; best = m; } } return best; }
   function useAt(tx, ty, itemId) {
     if (!st.me) return;
     const now = performance.now();
@@ -163,7 +163,8 @@ window.Game = (() => {
     if (npc) { if (Math.max(Math.abs(st.pos.x - npc.x), Math.abs(st.pos.y - npc.y)) > 3.5) { UI.toast('เดินเข้าไปใกล้ ' + npc.name + ' ก่อน', 'error'); return; } Net.send({ t: 'talk', npc: npc.id }); return; }
     const mob = mobAt(tx, ty);
     if (mob) {
-      if (Math.hypot(st.pos.x - mob.x, st.pos.y - mob.y) > 1.9) { UI.toast('เข้าใกล้อีกนิดถึงจะตีได้ (หรือใช้สกิลระยะไกล)', 'error'); return; }
+      const reach = 1.9 + ((D.ANIMALS[mob.t] ? D.ANIMALS[mob.t].size : 1) - 1) * 0.5;
+      if (Math.hypot(st.pos.x - mob.x, st.pos.y - mob.y) > reach) { UI.toast('เข้าใกล้อีกนิดถึงจะตีได้ (หรือใช้สกิลระยะไกล)', 'error'); return; }
       const ddx = mob.x - st.pos.x, ddy = mob.y - st.pos.y; if (Math.abs(ddx) > Math.abs(ddy)) st.dir = ddx > 0 ? 'right' : 'left'; else st.dir = ddy > 0 ? 'down' : 'up';
       st.anim = { a: (D.ITEMS[itemId] || {}).tool || 'hand', until: now + 300, icon: itemId, tx, ty };
       Net.send({ t: 'attack', id: mob.id, item: itemId }); return;
@@ -315,16 +316,40 @@ window.Game = (() => {
     drawMini(now);
   }
   function drawMob(m, ox, oy, now) {
-    const frame = Math.floor((now + m.id * 137) / 260) % 2;
     const hurt = (st.mobHits.get(m.id) || 0) > now;
-    const spr = SP.mob(m.t, m.v, frame, hurt);
     const cx = ox + m.x * TILE, cy = oy + m.y * TILE;
-    ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(cx, cy + TILE * 0.28, TILE * 0.32, TILE * 0.1, 0, 0, Math.PI * 2); ctx.fill();
-    const squash = m.a ? 1.15 : 1;
-    ctx.drawImage(spr, Math.round(cx - TILE / 2 * squash), Math.round(cy - TILE * 0.62), TILE * squash, TILE);
-    if (m.hp < m.mh) { const bw = TILE * 0.7, bx = cx - bw / 2, by = cy - TILE * 0.72; ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(bx, by, bw, 3 * dpr); ctx.fillStyle = '#ff5c5c'; ctx.fillRect(bx, by, bw * (m.hp / m.mh), 3 * dpr); }
-    if (st.hover && Math.floor(m.x) === st.hover.x && Math.floor(m.y) === st.hover.y) { const def = D.MOBS[m.t].variants[m.v]; ctx.font = `600 ${10 * dpr}px ${getComputedStyle(document.body).fontFamily}`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.lineWidth = 3 * dpr; ctx.strokeStyle = 'rgba(0,0,0,.7)'; ctx.strokeText(`${def.th} ${m.hp}/${m.mh}`, cx, cy - TILE * 0.78); ctx.fillStyle = '#ffb3b3'; ctx.fillText(`${def.th} ${m.hp}/${m.mh}`, cx, cy - TILE * 0.78); }
+    if (m.t === 'slime') {
+      const frame = Math.floor((now + m.id * 137) / 260) % 2;
+      const spr = SP.mob(m.t, m.v, frame, hurt);
+      ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(cx, cy + TILE * 0.28, TILE * 0.32, TILE * 0.1, 0, 0, Math.PI * 2); ctx.fill();
+      const squash = m.a ? 1.15 : 1;
+      ctx.drawImage(spr, Math.round(cx - TILE / 2 * squash), Math.round(cy - TILE * 0.62), TILE * squash, TILE);
+      if (m.hp < m.mh) { const bw = TILE * 0.7, bx = cx - bw / 2, by = cy - TILE * 0.72; ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(bx, by, bw, 3 * dpr); ctx.fillStyle = '#ff5c5c'; ctx.fillRect(bx, by, bw * (m.hp / m.mh), 3 * dpr); }
+      if (st.hover && Math.floor(m.x) === st.hover.x && Math.floor(m.y) === st.hover.y) { const def = D.MOBS[m.t].variants[m.v]; nameTag(cx, cy - TILE * 0.78, `${def.th} ${m.hp}/${m.mh}`, '#ffb3b3'); }
+      return;
+    }
+    const a = D.ANIMALS[m.t]; if (!a) return;
+    const moving = Math.abs(m.tx - m.x) > 0.02 || Math.abs(m.ty - m.y) > 0.02 || m.f;
+    const fly = a.shape === 'fly' || a.shape === 'fly_b' || a.shape === 'ptero';
+    const frame = (moving || fly) ? Math.floor((now + m.id * 91) / (fly ? 140 : 220)) % 2 : 0;
+    const spr = SP.animal(m.t, frame, hurt);
+    const size = a.size * TILE * 1.25; const hover = fly ? TILE * 0.6 + Math.sin(now / 300 + m.id) * 3 * dpr : 0;
+    ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(cx, cy + TILE * 0.2, size * 0.35, TILE * 0.1, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.save();
+    const flip = m.d === 'left';
+    ctx.translate(cx, cy + TILE * 0.25 - hover); if (flip) ctx.scale(-1, 1);
+    const squash = m.a ? 1.12 : 1;
+    ctx.drawImage(spr, -size / 2 * squash, -size * (30 / 32), size * squash, size);
+    ctx.restore();
+    const top = cy + TILE * 0.25 - hover - size * (30 / 32);
+    if (m.hp < m.mh) { const bw = Math.max(TILE * 0.6, size * 0.6), bx = cx - bw / 2, by = top - 6 * dpr; ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(bx, by, bw, 3 * dpr); ctx.fillStyle = '#ff5c5c'; ctx.fillRect(bx, by, bw * (m.hp / m.mh), 3 * dpr); }
+    const hx = Math.floor(m.x), hy = Math.floor(m.y);
+    if (st.hover && Math.abs(st.hover.x + 0.5 - m.x) <= a.size * 0.6 + 0.5 && Math.abs(st.hover.y + 0.5 - m.y) <= a.size * 0.6 + 0.5) {
+      const col = a.behavior === 'hostile' ? '#ff8080' : a.behavior === 'neutral' ? '#ffe08a' : '#c8f7c5';
+      nameTag(cx, top - 8 * dpr, `${a.th} ${m.hp}/${m.mh}${a.behavior === 'hostile' ? ' (ดุร้าย)' : a.behavior === 'neutral' ? ' (สู้กลับ)' : ''}`, col);
+    }
   }
+  function nameTag(cx, y, text, color) { ctx.font = `600 ${10 * dpr}px ${getComputedStyle(document.body).fontFamily}`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.lineWidth = 3 * dpr; ctx.strokeStyle = 'rgba(0,0,0,.7)'; ctx.strokeText(text, cx, y); ctx.fillStyle = color; ctx.fillText(text, cx, y); }
   function drawFx(ox, oy, now) {
     for (const f of st.fx) {
       const t = 1 - f.life / f.max; const sx = ox + (f.x + 0.5) * TILE, sy = oy + (f.y + 0.5) * TILE;
@@ -513,6 +538,7 @@ window.Game = (() => {
       if (o) { if (['tree', 'pine', 'palm'].includes(o.t)) c = '#2e6b2a'; else if (o.t === 'rock' || o.t === 'bigrock') c = '#666'; else if (o.o || o.t === 'shop') c = o.t === 'crop' ? '#e0a020' : '#f3dfb5'; }
       mctx.fillStyle = c; mctx.fillRect((dx + R) * s, (dy + R) * s, s, s);
     }
+    for (const m of st.mobs.values()) { const dx = m.x - px, dy = m.y - py; if (Math.abs(dx) < R && Math.abs(dy) < R) { const a = D.ANIMALS[m.t]; mctx.fillStyle = !a || a.behavior === 'hostile' ? '#ff5c5c' : a.behavior === 'neutral' ? '#ffd166' : '#ffffff'; mctx.fillRect((dx + R) * s, (dy + R) * s, 2, 2); } }
     for (const p of st.players.values()) { if (p.id === st.id) continue; const dx = p.x - px, dy = p.y - py; if (Math.abs(dx) < R && Math.abs(dy) < R) { mctx.fillStyle = UI.isFriend(p.id) ? '#4ade80' : '#ffd166'; mctx.fillRect((dx + R) * s - 1, (dy + R) * s - 1, 4, 4); } }
     if (st.me.home) { const dx = st.me.home.x - px, dy = st.me.home.y - py; if (Math.abs(dx) < R && Math.abs(dy) < R) { mctx.fillStyle = '#ff8c42'; mctx.fillRect((dx + R) * s - 2, (dy + R) * s - 2, 6, 6); } }
     mctx.fillStyle = '#fff'; mctx.fillRect(R * s - 2, R * s - 2, 5, 5);
@@ -615,11 +641,11 @@ window.Game = (() => {
       for (const n of m.npcs || []) { seen.add(n.id); let o = st.npcs.get(n.id); if (!o) { o = { ...n, tx: n.x, ty: n.y }; st.npcs.set(n.id, o); } else { o.tx = n.x; o.ty = n.y; o.d = n.d; o.m = n.m; } }
       for (const id of st.npcs.keys()) if (!seen.has(id)) st.npcs.delete(id);
       const seenM = new Set();
-      for (const e of m.mobs || []) { seenM.add(e.id); let o = st.mobs.get(e.id); if (!o) { o = { ...e, tx: e.x, ty: e.y }; st.mobs.set(e.id, o); } else { o.tx = e.x; o.ty = e.y; o.hp = e.hp; o.a = e.a; } }
+      for (const e of m.mobs || []) { seenM.add(e.id); let o = st.mobs.get(e.id); if (!o) { o = { ...e, tx: e.x, ty: e.y }; st.mobs.set(e.id, o); } else { o.tx = e.x; o.ty = e.y; o.hp = e.hp; o.a = e.a; o.d = e.d; o.f = e.f; } }
       for (const id of st.mobs.keys()) if (!seenM.has(id)) st.mobs.delete(id);
     });
-    Net.on('mob_hit', (m) => { st.mobHits.set(m.id, performance.now() + 150); float(`-${m.dmg}`, '#ffb3b3', m.x, m.y - 0.9); const mob = st.mobs.get(m.id); if (mob) mob.hp = Math.max(0, mob.hp - m.dmg); burst(Math.floor(m.x), Math.floor(m.y), (D.MOBS.slime.variants[mob ? mob.v : 0] || {}).color || '#5fbd55', 4, 0.5, 2); });
-    Net.on('mob_die', (m) => { st.mobs.delete(m.id); burst(Math.floor(m.x), Math.floor(m.y), D.MOBS.slime.variants[m.v].color, 14, 0.7, 3); });
+    Net.on('mob_hit', (m) => { st.mobHits.set(m.id, performance.now() + 150); float(`-${m.dmg}`, '#ffb3b3', m.x, m.y - 0.9); const mob = st.mobs.get(m.id); if (mob) mob.hp = Math.max(0, mob.hp - m.dmg); const col = mob && mob.t !== 'slime' ? '#e04848' : (D.MOBS.slime.variants[mob ? mob.v : 0] || {}).color || '#5fbd55'; burst(Math.floor(m.x), Math.floor(m.y), col, 4, 0.5, 2); });
+    Net.on('mob_die', (m) => { st.mobs.delete(m.id); const col = m.k && m.k !== 'slime' ? [D.ANIMALS[m.k] ? D.ANIMALS[m.k].color : '#e04848', '#e04848'] : D.MOBS.slime.variants[m.v].color; burst(Math.floor(m.x), Math.floor(m.y), col, 10 + Math.round((m.size || 1) * 6), 0.7 * (m.size || 1), 3); });
     Net.on('mob_gone', (m) => st.mobs.delete(m.id));
     Net.on('hurt', (m) => { st.hurtAt = performance.now(); float(`-${m.dmg}`, '#ff6b6b'); if (st.me) st.me.hp = m.hp; UI.refreshNeeds(); });
     Net.on('fx', (m) => { const max = m.kind === 'shot' ? 0.12 : m.kind === 'fire' ? 0.5 : m.kind === 'dash' ? 0.25 : 0.7; st.fx.push({ ...m, life: max, max }); if (m.kind === 'rain') for (let i = 0; i < 24; i++) st.particles.push({ x: m.x + 0.5 + (Math.random() - 0.5) * m.r * 2, y: m.y - 2 + Math.random() * 2, vx: 0, vy: 4 + Math.random() * 3, g: 0, life: 0.5 + Math.random() * 0.4, color: '#7cc4f0' }); if (m.kind === 'grow') burst(m.x, m.y, ['#7ee787', '#43aa8b'], 12, m.r * 2, 2); });

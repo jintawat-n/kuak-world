@@ -12,7 +12,7 @@ module.exports = function (ctx) {
   function setBuff(s, k, val, dur) { buffs(s)[k] = { val, until: Date.now() + dur * 1000 }; sendBuffs(s); }
   function sendBuffs(s) { const b = buffs(s); send(s.ws, { t: 'buffs', b: Object.fromEntries(Object.entries(b).map(([k, v]) => [k, { val: v.val, until: v.until }])) }); }
   function skillDmg(s, base) { return Math.round(base * (1 + D.passive(s.p.cls, 'skillDmg') / 100) * buffVal(s, 'dmg', 1)); }
-  function hitMob(s, mob, dmg) { broadcastNear(mob.x, mob.y, { t: 'mob_hit', id: mob.id, dmg, x: mob.x, y: mob.y }); if (MOBS.damage(mob, dmg, s.p.x, s.p.y)) mobKill(s, mob); }
+  function hitMob(s, mob, dmg) { broadcastNear(mob.x, mob.y, { t: 'mob_hit', id: mob.id, dmg, x: mob.x, y: mob.y }); if (MOBS.damage(mob, dmg, s.p.x, s.p.y, s)) mobKill(s, mob); }
 
   function waterTile(x, y, now) {
     const t = W.getTile(x, y); const o = W.getObj(x, y);
@@ -173,7 +173,7 @@ module.exports = function (ctx) {
       case 'find': { const r = findNearest(s, sk.what); if (!r) return err(s, 'ไม่พบในระยะค้นหา'); toast(s, `${sk.th}: ${r.name ? r.name + ' ' : ''}อยู่ทาง${dirName(r.x - p.x, r.y - p.y)} ห่าง ${Math.round(r.d)} ช่อง`, 'info'); send(s.ws, { t: 'ping', at: { x: r.x, y: r.y } }); break; }
       case 'treasure': { const [it, a, b] = sk.table[Math.floor(Math.random() * sk.table.length)]; const n = a + Math.floor(Math.random() * (b - a + 1)); give(p, it, n); toast(s, `${sk.th}: ได้ ${D.ITEMS[it].th} x${n}`, 'get'); fx('buff', px, py); sendMe(s, ['inv']); break; }
       case 'panel': { if (sk.which === 'cook') setBuff(s, 'cook', 1, 120); send(s.ws, { t: 'open', panel: sk.which }); break; }
-      case 'lure': { if (nearTown(px, py)) return err(s, 'ในเมืองปลอดภัย ล่อมอนสเตอร์ไม่ได้'); for (let i = 0; i < sk.num; i++) if (MOBS.spawnNear(p.x, p.y, p.level)) count++; if (!count) return err(s, 'ไม่มีที่ให้มอนสเตอร์เกิดแถวนี้'); toast(s, `ล่อมอนสเตอร์มา ${count} ตัว`, 'info'); break; }
+      case 'lure': { if (nearTown(px, py)) return err(s, 'ในเมืองปลอดภัย ล่อมอนสเตอร์ไม่ได้'); for (let i = 0; i < sk.num; i++) if ((Math.random() < 0.5 ? MOBS.spawnNear(p.x, p.y, p.level) : MOBS.spawnAnimalNear(p.x, p.y, p.level, MOBS.isNight(db.world.time)))) count++; if (!count) return err(s, 'ไม่มีที่ให้มอนสเตอร์เกิดแถวนี้'); toast(s, `ล่อมอนสเตอร์มา ${count} ตัว`, 'info'); break; }
       case 'coins': { p.coins += sk.num; toast(s, `${sk.th}: +${sk.num} เหรียญ`, 'get'); sendMe(s, ['coins']); break; }
       case 'convert': { const [a, b] = sk.ratio; const sets = Math.min(10, Math.floor((p.inv[sk.from] || 0) / a)); if (!sets) return err(s, `ต้องมี ${D.ITEMS[sk.from].th} อย่างน้อย ${a} ชิ้น`); take(p, sk.from, sets * a); const got = give(p, sk.to, sets * b); toast(s, `${sk.th}: ${D.ITEMS[sk.from].th} -${sets * a} → ${D.ITEMS[sk.to].th} +${got}`, 'get'); fx('buff', px, py); addXp(s, D.XP.craft); sendMe(s, ['inv']); break; }
       default: return;

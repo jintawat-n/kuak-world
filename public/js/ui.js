@@ -478,21 +478,46 @@ window.UI = (() => {
   }
   function hideDialog() { $('#dialog').classList.add('hidden'); }
 
-  // ---------- fishdex ----------
-  let fishFilter = 'all', fishQ = '';
+  // ---------- creature book (fish + wildlife) ----------
+  let bookGroup = 'fish', fishFilter = 'all', fishQ = '';
   function refreshFishdex() {
-    const me = G().me; const dex = me.fishdex || {}; const box = $('#fishList'); box.innerHTML = '';
-    const caught = D.FISH_LIST.filter(f => dex[f.id]).length;
-    $('#fishCount').textContent = `· จับได้แล้ว ${caught}/${D.FISH_LIST.length} ชนิด`;
-    const total = Object.values(dex).reduce((a, r) => a + r.n, 0);
-    $('#fishHint').textContent = `ตกปลา: เลือกเบ็ด (ปุ่ม =) แล้วคลิกบนน้ำในระยะ 4 ช่อง รอจนขึ้นเครื่องหมาย ! แล้วคลิกหรือกด Space ทันที · ใช้เหยื่อ (คราฟต์จากเบอร์รี่+เห็ด) ปลากินไวและได้ปลาหายากขึ้น · น้ำตื้น/แม่น้ำ = ปลาน้ำจืด · ทะเลลึก = ปลาทะเล · บางชนิดออกเฉพาะกลางคืน · เบ็ดดีกว่า = โอกาสหายากมากขึ้น · จับทั้งหมด ${total} ตัว`;
+    const me = G().me; const dex = me.fishdex || {}; const best = me.bestiary || {}; const box = $('#fishList'); box.innerHTML = '';
+    const caughtF = D.FISH_LIST.filter(f => dex[f.id]).length;
+    const groups = [['fish', 'ปลา', D.FISH_LIST.length, caughtF]];
+    for (const g of ['land', 'bird', 'dino']) { const list = D.ANIMAL_LIST.filter(a => a.group === g); groups.push([g, D.GROUP_TH[g], list.length, list.filter(a => best[a.id]).length]); }
+    groups.push(['slime', 'สไลม์', 3, [0, 1, 2].filter(v => best['slime' + v]).length]);
+    const totalAll = groups.reduce((a, g) => a + g[2], 0), gotAll = groups.reduce((a, g) => a + g[3], 0);
+    $('#fishCount').textContent = `· พบแล้ว ${gotAll}/${totalAll} ชนิด`;
+    const gt = $('#bookGroups'); gt.innerHTML = '';
+    for (const [id, th, n, got] of groups) { const b = document.createElement('button'); b.className = 'tab' + (bookGroup === id ? ' active' : ''); b.textContent = `${th} ${got}/${n}`; b.onclick = () => { bookGroup = id; fishFilter = 'all'; refreshFishdex(); }; gt.appendChild(b); }
     const tabs = $('#fishTabs'); tabs.innerHTML = '';
-    for (const [id, th] of [['all', 'ทั้งหมด'], ['river', 'น้ำจืด'], ['sea', 'ทะเล'], ['any', 'พิเศษ'], ['night', 'กลางคืน'], ['caught', 'จับแล้ว'], ['rare', 'หายาก+']]) { const b = document.createElement('button'); b.className = 'tab' + (fishFilter === id ? ' active' : ''); b.textContent = th; b.onclick = () => { fishFilter = id; refreshFishdex(); }; tabs.appendChild(b); }
+    const filters = bookGroup === 'fish' ? [['all', 'ทั้งหมด'], ['river', 'น้ำจืด'], ['sea', 'ทะเล'], ['any', 'พิเศษ'], ['night', 'กลางคืน'], ['caught', 'พบแล้ว'], ['rare', 'หายาก+']] : [['all', 'ทั้งหมด'], ['passive', 'เชื่อง'], ['neutral', 'สู้กลับ'], ['hostile', 'ดุร้าย'], ['night', 'กลางคืน'], ['caught', 'พบแล้ว'], ['rare', 'หายาก+']];
+    for (const [id, th] of filters) { const b = document.createElement('button'); b.className = 'tab' + (fishFilter === id ? ' active' : ''); b.textContent = th; b.onclick = () => { fishFilter = id; refreshFishdex(); }; tabs.appendChild(b); }
     const q = fishQ.toLowerCase();
-    const list = D.FISH_LIST.filter(f => (fishFilter === 'all' || (fishFilter === 'night' ? f.night : fishFilter === 'caught' ? dex[f.id] : fishFilter === 'rare' ? f.rarity >= 3 : f.habitat === fishFilter)) && (!q || f.th.includes(q))).sort((a, b) => a.rarity - b.rarity || a.lv - b.lv);
-    for (const f of list) {
-      const r = dex[f.id]; const div = document.createElement('div'); div.className = 'fish' + (r ? ' got' : '');
-      div.innerHTML = `<img src="${SP.iconURL(f.id)}" alt=""><div class="fb"><b>${r ? f.th : '???'}</b><span class="rar" style="color:${D.RARITY_COLOR[f.rarity]}">${D.RARITY_TH[f.rarity]}</span><small>${{ river: 'น้ำจืด', sea: 'ทะเล', any: 'ทุกแหล่งน้ำ' }[f.habitat]}${f.night ? ' · กลางคืน' : ''} · ${f.minCm}-${f.maxCm} ซม. · ขาย ${f.price}${f.lv > 1 ? ' · Lv ' + f.lv : ''}</small>${r ? `<small class="rec">จับได้ ${r.n} ตัว · สถิติ ${r.max} ซม.</small>` : ''}</div>`;
+    if (bookGroup === 'fish') {
+      const total = Object.values(dex).reduce((a, r) => a + r.n, 0);
+      $('#fishHint').textContent = `ตกปลา: เลือกเบ็ด (ปุ่ม =) คลิกบนน้ำในระยะ 4 ช่อง รอเครื่องหมาย ! แล้วคลิก/Space · ใส่เหยื่อ (เบอร์รี่+เห็ด) ปลากินไว · น้ำตื้น = น้ำจืด ทะเลลึก = ปลาทะเล · บางชนิดเฉพาะกลางคืน · จับแล้ว ${total} ตัว`;
+      const list = D.FISH_LIST.filter(f => (fishFilter === 'all' || (fishFilter === 'night' ? f.night : fishFilter === 'caught' ? dex[f.id] : fishFilter === 'rare' ? f.rarity >= 3 : f.habitat === fishFilter)) && (!q || f.th.includes(q))).sort((a, b) => a.rarity - b.rarity || a.lv - b.lv);
+      for (const f of list) {
+        const r = dex[f.id]; const div = document.createElement('div'); div.className = 'fish' + (r ? ' got' : '');
+        div.innerHTML = `<img src="${SP.iconURL(f.id)}" alt=""><div class="fb"><b>${r ? f.th : '???'}</b><span class="rar" style="color:${D.RARITY_COLOR[f.rarity]}">${D.RARITY_TH[f.rarity]}</span><small>${{ river: 'น้ำจืด', sea: 'ทะเล', any: 'ทุกแหล่งน้ำ' }[f.habitat]}${f.night ? ' · กลางคืน' : ''} · ${f.minCm}-${f.maxCm} ซม. · ขาย ${f.price}${f.lv > 1 ? ' · Lv ' + f.lv : ''}</small>${r ? `<small class="rec">จับได้ ${r.n} ตัว · สถิติ ${r.max} ซม.</small>` : ''}</div>`;
+        box.appendChild(div);
+      }
+      if (!list.length) box.innerHTML = '<div class="muted">ไม่พบ</div>';
+      return;
+    }
+    if (bookGroup === 'slime') {
+      $('#fishHint').textContent = 'สไลม์ออกตอนกลางคืนในป่านอกเมือง ล่าได้เมือกสไลม์ แร่ และแก่นเวท';
+      D.MOBS.slime.variants.forEach((v, i) => { const n = best['slime' + i]; const div = document.createElement('div'); div.className = 'fish' + (n ? ' got' : ''); div.innerHTML = `<img src="${SP.mob('slime', i, 0, false).toDataURL()}" alt=""><div class="fb"><b>${n ? v.th : '???'}</b><small>เลือด ${v.hp} · โจมตี ${v.dmg} · XP ${v.xp}</small>${n ? `<small class="rec">ล่าแล้ว ${n} ตัว</small>` : ''}</div>`; box.appendChild(div); });
+      return;
+    }
+    const BIO_TH = { grass: 'ทุ่งหญ้า', forest: 'ป่า', sand: 'ชายหาด/ทะเลทราย', stone: 'ภูเขา', snow: 'หิมะ', water: 'ริมน้ำ', dino: 'ดินแดนไดโนเสาร์' };
+    $('#fishHint').textContent = bookGroup === 'dino' ? 'ไดโนเสาร์อยู่ในดินแดนไดโนเสาร์: ไกลจากเมืองเกิน 300 ช่อง หรือเขตภูเขา/หิมะที่ไกลเกิน 140 ช่อง · ตัวใหญ่แข็งแรงมาก ควรมีเพื่อนและเลเวลสูง · ล่าได้เนื้อไดโนเสาร์ ฟัน ไข่ กระดูก' : bookGroup === 'bird' ? 'นกส่วนใหญ่บินอยู่ ต้องใช้สกิลระยะไกลหรือรอให้ลงมาใกล้ · ล่าได้ขนนก เนื้อสัตว์ปีก ไข่' : 'สัตว์เชื่องจะวิ่งหนีเมื่อถูกตี สัตว์สู้กลับจะโจมตีคืน สัตว์ดุร้ายไล่ล่าคุณเอง · ล่าได้เนื้อ หนัง ขน เขา งา นม น้ำผึ้ง เอาไปทำอาหารและวัสดุ';
+    const list = D.ANIMAL_LIST.filter(a => a.group === bookGroup && (fishFilter === 'all' || (fishFilter === 'night' ? a.when !== 0 : fishFilter === 'caught' ? best[a.id] : fishFilter === 'rare' ? a.rarity >= 3 : a.behavior === fishFilter)) && (!q || a.th.includes(q))).sort((a, b) => a.rarity - b.rarity || a.lv - b.lv);
+    for (const a of list) {
+      const n = best[a.id]; const div = document.createElement('div'); div.className = 'fish' + (n ? ' got' : '');
+      const bc = a.behavior === 'hostile' ? '#e04848' : a.behavior === 'neutral' ? '#d9822b' : '#43aa8b';
+      div.innerHTML = `<img src="${SP.animal(a.id, 0, false).toDataURL()}" alt=""><div class="fb"><b>${n ? a.th : '???'}</b><span class="rar" style="color:${D.RARITY_COLOR[a.rarity]}">${D.RARITY_TH[a.rarity]}</span> <span class="rar" style="color:${bc}">${{ passive: 'เชื่อง', neutral: 'สู้กลับ', hostile: 'ดุร้าย' }[a.behavior]}</span><small>${a.biomes.map(b => BIO_TH[b]).join('/')}${a.when === 1 ? ' · กลางคืน' : a.when === 2 ? ' · ทั้งวัน' : ''} · เลือด ${a.hp}${a.dmg ? ' · โจมตี ' + a.dmg : ''}${a.lv > 1 ? ' · Lv ' + a.lv : ''}</small><small>ดรอป: ${a.drops.map(d => D.ITEMS[d[0]].th).join(' ')}</small>${n ? `<small class="rec">ล่าแล้ว ${n} ตัว</small>` : ''}</div>`;
       box.appendChild(div);
     }
     if (!list.length) box.innerHTML = '<div class="muted">ไม่พบ</div>';
@@ -539,7 +564,7 @@ window.UI = (() => {
     if (fields.includes('home')) toast('บ้านของคุณอยู่ที่นี่แล้ว กด H เพื่อกลับบ้าน', 'info', 2800, 'home');
     if (fields.includes('xp') || fields.includes('level')) { refreshLevel(); if (fields.includes('level') && currentPanel() === 'pClass') refreshClass(); }
     if (fields.includes('vehicle')) { refreshVehicle(); if (currentPanel() === 'pInv') refreshInv(); }
-    if (fields.includes('fishdex') && currentPanel() === 'pFish') refreshFishdex();
+    if ((fields.includes('fishdex') || fields.includes('bestiary')) && currentPanel() === 'pFish') refreshFishdex();
     if (fields.includes('cls')) { refreshSkills(); if (currentPanel() === 'pClass') refreshClass(); if (currentPanel() === 'pCraft') refreshCraft(); }
     if (fields.includes('needs')) refreshSkills();
     if (fields.includes('look') || fields.includes('name')) refreshProfile();
