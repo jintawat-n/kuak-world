@@ -300,3 +300,11 @@ h3 .ui-ic { width: 20px; height: 20px; vertical-align: -4px; margin-right: 2px; 
 .era .cat { margin: 6px 0 2px; font-size: 12px; font-weight: 700; color: var(--muted); }
 .li .era-tag { font-size: 10px; color: var(--muted); margin-left: 4px; }
 .more { text-align: center; padding: 8px; }
+
+#pFish { width: 720px; }
+.fishgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 6px; }
+.fish { display: flex; gap: 8px; align-items: center; background: #fff; border: 2px solid var(--wood); border-radius: 8px; padding: 6px; opacity: .6; }
+.fish.got { opacity: 1; }
+.fish img { width: 36px; height: 36px; image-rendering: pixelated; flex-shrink: 0; }
+.fish:not(.got) img { filter: brightness(0) opacity(.35); }
+.fish .fb { min-width: 0; font-size: 11px; line-height: 1.3; } .fish .fb b { display: block; font-size: 13px; } .fish .rar { font-weight: 700; font-size: 10px; } .fish small { display: block; color: var(--muted); } .fish .rec { color: #2a9d8f; }

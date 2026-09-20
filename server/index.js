@@ -59,7 +59,7 @@ app.get('/api/map', (req, res) => {
 function userById(id) { for (const u of Object.values(db.users.byName)) if (u.id === Number(id)) return u; return null; }
 
 // ---------------- player helpers ----------------
-const STARTER = { axe: 1, pickaxe: 1, hoe: 1, can: 1, hammer: 1, seed_carrot: 6, seed_tomato: 4, wood: 20, stone: 10, bread: 2 };
+const STARTER = { axe: 1, pickaxe: 1, hoe: 1, can: 1, hammer: 1, rod_wood: 1, bait: 10, seed_carrot: 6, seed_tomato: 4, wood: 20, stone: 10, bread: 2 };
 function newPlayer(u, name, look) {
   const sp = W.findFreeNear(D.SPAWN.x + (Math.random() * 6 - 3) | 0, D.SPAWN.y + 2 + (Math.random() * 3) | 0, 6);
   return {
@@ -155,6 +155,7 @@ function reqList(p) {
 function warp(s, x, y) {
   const f = W.findFreeNear(x, y, 6);
   s.p.x = f.x + 0.5; s.p.y = f.y + 0.5; s.p.state = null;
+  if (s.fishing) FISH.cancel(s, true);
   if (s.p.vehicle) { s.p.vehicle = null; sendMe(s, ['vehicle']); }
   send(s.ws, { t: 'warp', x: s.p.x, y: s.p.y });
 }
@@ -227,6 +228,8 @@ function doUse(s, m) {
     return;
   }
 
+  // ---- fishing rod ----
+  if (tool === 'rod') { if (tile === D.T.WATER || tile === D.T.SHALLOW) return FISH.cast(s, { x, y }); return err(s, 'เหวี่ยงเบ็ดลงน้ำเท่านั้น'); }
   // ---- empty tile ----
   if (item.crop) {
     if (!tdef.soil) return err(s, 'ต้องพรวนดินด้วยจอบก่อนปลูก');
@@ -488,6 +491,7 @@ function dialogChoice(s, m) {
   }
 }
 
+const FISH = require('./fishing')({ give, has, take, toast, err, send, sendMe, addXp, db, broadcastNear });
 const SK = require('./skills')({ give, take, has, clamp, toast, err, send, sendMe, broadcastWorld, broadcastNear, addXp, warp, nearTown, playerOnTile, mobKill, sessions, online, db });
 
 // ---------------- chat & friends ----------------
@@ -633,6 +637,7 @@ function handle(s, m) {
       if (Math.abs(dx) > 6 || Math.abs(dy) > 6) return send(s.ws, { t: 'warp', x: p.x, y: p.y });
       if (!W.passableFor(p.vehicle, Math.floor(x), Math.floor(y))) return send(s.ws, { t: 'warp', x: p.x, y: p.y });
       if (p.state && (Math.abs(dx) > 0.05 || Math.abs(dy) > 0.05)) p.state = null;
+      if (s.fishing && (Math.abs(dx) > 0.3 || Math.abs(dy) > 0.3)) FISH.cancel(s, true);
       p.x = x; p.y = y; p.d = ['up', 'down', 'left', 'right'].includes(m.d) ? m.d : p.d; s.moving = !!m.m;
       if (s.moving || Math.abs(dx) > 0.01 || Math.abs(dy) > 0.01) s.lastActive = Date.now();
       s.dirtyPos = true;
@@ -691,6 +696,9 @@ function handle(s, m) {
     case 'town': { if ((s.warpCool || 0) > Date.now() && !D.passive(p.cls, 'homeCd')) return err(s, 'รอสักครู่ก่อนวาร์ปอีกครั้ง'); s.warpCool = Date.now() + 8000; warp(s, D.SPAWN.x, D.SPAWN.y + 2); return; }
     case 'wake': { p.state = null; return; }
     case 'skill': return SK.useSkill(s, m);
+    case 'fish': return FISH.cast(s, m);
+    case 'reel': return FISH.reel(s);
+    case 'fish_cancel': return FISH.cancel(s);
     case 'attack': { const mob = MOBS.mobs.get(Number(m.id)); if (mob) melee(s, mob, D.ITEMS[m.item] ? String(m.item) : 'hand'); return; }
     case 'talk': { const npc = NPC.NPCS.find(n => n.id === m.npc); if (!npc || Math.abs(npc.x - p.x) > 4 || Math.abs(npc.y - p.y) > 4) return; return send(s.ws, { t: 'dialog', npc: npc.id, ...NPC.dialog(npc, p) }); }
     case 'dialog': return dialogChoice(s, m);
@@ -733,7 +741,7 @@ function enter(s, p) {
   const prev = online.get(p.id);
   if (prev && prev !== s) { send(prev.ws, { t: 'kick', reason: 'มีการเข้าสู่ระบบจากที่อื่น' }); prev.p = null; prev.ws.close(); sessions.delete(prev); }
   s.p = p; p.lastSeen = Date.now(); p.state = null; s.lastActive = Date.now();
-  p.level = p.level || 1; p.xp = p.xp || 0; p.vehicle = p.vehicle || null; if (p.hp == null) p.hp = 100; if (p.cls && !D.CLASSES[p.cls]) p.cls = null;
+  p.level = p.level || 1; p.xp = p.xp || 0; p.vehicle = p.vehicle || null; if (p.hp == null) p.hp = 100; if (p.cls && !D.CLASSES[p.cls]) p.cls = null; p.fishdex = p.fishdex || {};
   // migrate old 8-slot hotbar (tools mixed in) -> item-only zone
   if (!Array.isArray(p.hotbar) || p.hotbar.length !== D.ITEM_SLOTS || p.hotbar.some(x => x && D.ITEMS[x] && D.ITEMS[x].cat === 'tool')) {
     const items = (p.hotbar || []).filter(x => x && D.ITEMS[x] && D.ITEMS[x].cat !== 'tool');

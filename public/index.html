@@ -94,6 +94,7 @@
     <div class="panel clock"><img class="ui-ic" id="clockIcon" data-ic="sun" alt=""> <b id="clock">08:00</b> <span class="muted" id="online">· 1 ออนไลน์</span></div>
     <canvas id="minimap" width="160" height="160" class="panel"></canvas>
     <div class="hud-btns">
+      <button class="hbtn" id="btnFish" title="สมุดปลา (N)"><img class="ui-ic big" data-ic="fish" alt=""></button>
       <button class="hbtn" id="btnEra" title="ยุคและการปลดล็อก (L)"><img class="ui-ic big" data-ic="scroll" alt=""></button>
       <button class="hbtn" id="btnMap" title="แผนที่ (M)"><img class="ui-ic big" data-ic="map" alt=""></button>
       <button class="hbtn" id="btnFriends" title="เพื่อน (F)"><img class="ui-ic big" data-ic="friends" alt=""><span class="badge hidden" id="badgeFriends"></span></button>
@@ -168,7 +169,7 @@
     <div id="pInv" class="panel modal-panel hidden">
       <div class="ph"><h3><img class="ui-ic" data-ic="bag" alt=""> กระเป๋า</h3><button class="x" data-close>✕</button></div>
       <div class="tabs small" id="invTabs">
-        <button class="tab active" data-cat="all">ทั้งหมด</button><button class="tab" data-cat="tool">เครื่องมือ</button><button class="tab" data-cat="mat">วัตถุดิบ</button><button class="tab" data-cat="food">อาหาร</button><button class="tab" data-cat="seed">เมล็ด</button><button class="tab" data-cat="build">ก่อสร้าง</button><button class="tab" data-cat="furn">เฟอร์นิเจอร์</button><button class="tab" data-cat="weapon">อาวุธ</button><button class="tab" data-cat="vehicle">พาหนะ</button>
+        <button class="tab active" data-cat="all">ทั้งหมด</button><button class="tab" data-cat="tool">เครื่องมือ</button><button class="tab" data-cat="mat">วัตถุดิบ</button><button class="tab" data-cat="food">อาหาร</button><button class="tab" data-cat="seed">เมล็ด</button><button class="tab" data-cat="build">ก่อสร้าง</button><button class="tab" data-cat="furn">เฟอร์นิเจอร์</button><button class="tab" data-cat="weapon">อาวุธ</button><button class="tab" data-cat="fish">ปลา</button><button class="tab" data-cat="vehicle">พาหนะ</button>
       </div>
       <div class="hint">คลิกไอเทมเพื่อใส่ช่องด่วนที่เลือกอยู่ · คลิกขวาอาหารเพื่อกิน</div>
       <div id="invGrid" class="grid"></div>
@@ -238,6 +239,14 @@
       <div id="eraList"></div>
     </div>
 
+    <div id="pFish" class="panel modal-panel hidden">
+      <div class="ph"><h3><img class="ui-ic" data-ic="fish" alt=""> สมุดปลา <span class="muted" id="fishCount"></span></h3><button class="x" data-close>✕</button></div>
+      <div class="hint" id="fishHint"></div>
+      <div class="tabs small" id="fishTabs"></div>
+      <input id="fishQ" placeholder="ค้นหาชื่อปลา..." style="width:100%;margin-bottom:8px">
+      <div id="fishList" class="fishgrid"></div>
+    </div>
+
     <div id="pClass" class="panel modal-panel hidden">
       <div class="ph"><h3><img class="ui-ic" data-ic="star" alt=""> อาชีพและพลังวิเศษ</h3><button class="x" data-close>✕</button></div>
       <div class="hint" id="classHint"></div>
@@ -258,6 +267,8 @@
         <p><b>ยานพาหนะ</b> คราฟต์/ซื้อแล้วกด "ขี่" ในกระเป๋า · แพ/เรือใช้ในน้ำ (ขึ้นจากชายหาด) · ม้า จักรยาน มอเตอร์ไซค์ รถยนต์ ใช้บนบก · เฮลิคอปเตอร์บินข้ามทุกอย่าง · กด G เพื่อลง</p>
         <p><b>NPC ในเมือง</b> คลิกที่ตัวละครชื่อสีเหลืองเพื่อคุย: ลุงชม (ร้านค้า) ครูเพชร (เลือกอาชีพ) หมอบัว (รักษาเลือด/พักฟื้น) ป้าแดงและน้องต้น (เคล็ดลับ)</p>
         <p><b>อาชีพ</b> เลือกที่ครูเพชรฟรีครั้งแรก (เปลี่ยน 200 เหรียญ) มี ชาวไร่ / ช่างก่อสร้าง / พ่อมด / มือปืน แต่ละอาชีพมีโบนัสติดตัวและสกิล 4 อัน กด <b>Z X C V</b> (สกิลเล็งเป้าจะยิงไปที่ช่องใต้เมาส์ หรือคลิกปุ่มสกิลแล้วคลิกเป้า) · ดูรายละเอียดกด J</p>
+        <p><b>ตกปลา</b> เลือกเบ็ด (ปุ่ม =) คลิกบนน้ำ รอเครื่องหมาย ! แล้วคลิก/Space · ยืนบนเรือตกกลางทะเลได้ · ปลา 110 ชนิด ดูสถิติในสมุดปลา (N) · ใส่เหยื่อให้ปลากินไว</p>
+        <p><b>เรือ</b> คราฟต์ได้ในหมวดพาหนะ (แพ เรือพาย เรือใบ เรือกลไฟ เจ็ตสกี ...) ขึ้นจากชายหาดด้วยปุ่ม "ขี่" ในกระเป๋า</p>
         <p><b>มอนสเตอร์</b> สไลม์ออกตอนกลางคืน (19:00-05:30) ในป่านอกเมือง เข้ามากัดทำเลือดลด คลิกที่ตัวมันเพื่อตี (เครื่องมือเหล็กแรงสุด) หรือใช้สกิลพ่อมด/มือปืน ล่าได้เมือกสไลม์ แก่นเวท และ XP · ในเขตเมืองปลอดภัย</p>
         <p><b>ปุ่มลัด</b> I กระเป๋า · K คราฟต์ · B ร้านค้า · J อาชีพ · M แผนที่ · L ยุค · F เพื่อน · H กลับบ้าน · G ลงจากพาหนะ · Z X C V สกิล · Esc เมนู/ยกเลิกเล็ง</p>
       </div>
@@ -274,6 +285,7 @@
 <script src="js/defs.js"></script>
 <script src="js/classes.js"></script>
 <script src="js/items_gen.js"></script>
+<script src="js/fish.js"></script>
 <script src="js/sprites.js"></script>
 <script src="js/net.js"></script>
 <script src="js/game.js"></script>

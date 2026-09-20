@@ -330,6 +330,6 @@
   D.ITEM_SLOTS = 5;
   D.bestTool = (inv, kind) => { const k = D.TOOL_KINDS.find(t => t.kind === kind); if (!k) return null; for (const id of k.tiers) if (inv[id] > 0) return id; return null; };
 
-  if (typeof module !== 'undefined' && module.exports) { require('./classes.js')(D); require('./items_gen.js')(D); module.exports = D; }
+  if (typeof module !== 'undefined' && module.exports) { require('./classes.js')(D); require('./items_gen.js')(D); require('./fish.js')(D); module.exports = D; }
   else root.DEFS = D;
 })(typeof window !== 'undefined' ? window : globalThis);

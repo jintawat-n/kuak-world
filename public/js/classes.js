@@ -72,6 +72,7 @@
     const pSkillCost = (pct) => P('skillCost', pct, `สกิลใช้พลังงานลด ${pct}%`);
     const pFaint = (pct) => P('faintSave', pct, `เป็นลมแล้วเสียเหรียญน้อยลง ${pct}%`);
     const pHome = () => P('homeCd', 1, 'กลับบ้าน/ไปเมืองไม่มีคูลดาวน์');
+    const pFish = (pct) => P('fishLuck', pct, `โอกาสตกปลาหายาก +${pct}%`);
 
     const C = (id, th, family, lv, icon, desc, passives, skills) => ({ id, th, family, lv, icon, desc, passives, skills });
     const cls = [];
@@ -86,7 +87,7 @@
         [sow('ดำนา', 2, 8, 10), water('ทดน้ำเข้านา', 2, 4, 10, 10), reap('เกี่ยวข้าว', 4, 15, 10), heal('ข้าวห่อกลางนา', { hunger: 30, energy: 10 }, 120)]),
       C('orchard', 'ชาวสวนผลไม้', 'เกษตร', 5, 'cls_farmer:3', 'ปลูกต้นไม้และเก็บผลได้ไว', [pWood(1), pGather(2), pCrop(10)],
         [gather('สอยผล', 4, 10, 6), grow('ปุ๋ยวิเศษ', 3, 4, 60, 20), quarry('ตัดแต่งกิ่ง', 1, 3, 20, 10, 'sk_quarry:2', 1), heal('น้ำผลไม้สด', { hunger: 20, fun: 10 }, 90)]),
-      C('herbalist', 'หมอสมุนไพร', 'เกษตร', 6, 'cls_farmer:5', 'รู้จักพืชทุกชนิด รักษาด้วยสมุนไพร', [pGather(2), pRegen(1.5), pFood(15)],
+      C('herbalist', 'หมอสมุนไพร', 'เกษตร', 6, 'cls_farmer:5', 'รู้จักพืชทุกชนิด รักษาด้วยสมุนไพร', [pGather(2), pRegen(1.5), pFish(20)],
         [gather('เก็บสมุนไพร', 4, 10, 6, 'sk_reap:2'), heal('ยาต้ม', { hp: 30, hygiene: 10 }, 60, 6), healArea('ยาหม้อรวม', 20, 4, 90, 12), poison('ผงพิษ', 4, 6, 5, 8, 6)]),
       C('beekeeper', 'คนเลี้ยงผึ้ง', 'เกษตร', 8, 'cls_farmer:1', 'ผึ้งช่วยผสมเกสร ผักโตไว', [pCrop(35), pHarvest(1), pSell(10)],
         [grow('ฝูงผึ้งผสมเกสร', 3, 0, 60, 18), aoe('ต่อยผึ้ง', 8, 3, 0, 6, 6, 'sk_fan:4'), slow('ควันรม', 4, 5, 15, 8), treasure('น้ำผึ้ง', [['berry', 3, 6], ['flower', 2, 4], ['essence', 1, 1]], 180)]),
@@ -272,9 +273,9 @@
     cls.push(
       C('explorer', 'นักสำรวจ', 'สำรวจ', 1, 'cls_explorer', 'เดินไกล หาของเจอ กลับบ้านง่าย', [pSpeed(15), pEnergy(15), pHome()],
         [find('เข็มทิศหาแร่', 'bigrock', 15), buff('เดินเร็ว', 'speed', 1.5, 30, 60, 6, 'sk_dash:2'), warp('กลับบ้านทันที', 'home', 45, 5), heal('เสบียง', { hunger: 20, energy: 15 }, 90, 0)]),
-      C('traveler', 'นักเดินทาง', 'สำรวจ', 1, 'cls_explorer:3', 'ท่องโลกไม่รู้เหนื่อย', [pSpeed(10), pEnergy(25), pHunger(15)],
+      C('traveler', 'นักเดินทาง', 'สำรวจ', 1, 'cls_explorer:3', 'ท่องโลกไม่รู้เหนื่อย', [pSpeed(10), pEnergy(25), pFish(20)],
         [dash('ก้าวยาว', 5, 4, 4), warp('กลับเมือง', 'town', 45, 5), find('หาแหล่งน้ำ', 'water', 15), buff('เท้าเบา', 'speed', 1.4, 45, 90, 5, 'sk_dash:3')]),
-      C('sailor', 'กะลาสี', 'สำรวจ', 3, 'cls_explorer:1', 'เจ้าทะเล เรือเร็ว ว่ายน้ำไว', [pVeh(25), pSwim(60), pHyg(20)],
+      C('sailor', 'กะลาสี', 'สำรวจ', 3, 'cls_explorer:1', 'เจ้าทะเล เรือเร็ว ว่ายน้ำไว ตกปลาเก่ง', [pVeh(25), pSwim(60), pFish(40)],
         [buff('ลมส่งเรือ', 'speed', 1.6, 30, 60, 6, 'sk_dash:1'), find('หาชายฝั่ง', 'water', 10), aoe('สมอฟาด', 20, 1.5, 0, 4, 6, 'sk_wall:1'), heal('เหล้ารัม', { fun: 20, energy: 10 }, 90, 0, 'sk_vigor:1')]),
       C('climber', 'นักปีนเขา', 'สำรวจ', 5, 'cls_explorer:2', 'ภูเขาคือบ้าน หินคือเพื่อน', [pStone(1), pOre(10), pEnergy(20)],
         [blink('โหนเชือก', 5, 5, 6, 'sk_blink:2'), quarry('ปีนสกัดหิน', 1, 3, 20, 10, 'sk_quarry', 1), buff('ปอดเหล็ก', 'speed', 1.3, 45, 90, 5, 'sk_dash:2'), heal('พักบนยอด', { energy: 25, fun: 15 }, 90, 0)]),
@@ -286,7 +287,7 @@
         [blink('โดดร่ม', 10, 6, 8, 'sk_blink:1'), buff('เทอร์โบ', 'speed', 1.7, 20, 60, 8, 'sk_dash:1'), find('เรดาร์', 'mob', 15), warp('บินกลับฐาน', 'home', 45, 5)]),
       C('runner', 'นักวิ่ง', 'สำรวจ', 10, 'cls_explorer:3', 'ขาคือทุกอย่าง', [pSpeed(35), pEnergy(20), pHunger(-10)],
         [buff('สปรินต์', 'speed', 2, 10, 30, 6, 'sk_dash:3'), dash('พุ่งออกตัว', 6, 3, 4, 'sk_dash:3'), heal('น้ำเกลือแร่', { energy: 30 }, 90, 0, 'sk_water:1'), push('วิ่งชน', 2, 3, 8, 4)]),
-      C('diver', 'นักดำน้ำ', 'สำรวจ', 15, 'cls_explorer:1', 'ใต้น้ำคือสนามเด็กเล่น', [pSwim(120), pHyg(40), pVeh(20)],
+      C('diver', 'นักดำน้ำ', 'สำรวจ', 15, 'cls_explorer:1', 'ใต้น้ำคือสนามเด็กเล่น', [pSwim(120), pFish(80), pVeh(20)],
         [blink('ดำผ่านน้ำ', 8, 5, 6, 'sk_blink:1'), heal('อาบน้ำทะเล', { hygiene: 50, fun: 15 }, 90, 0, 'sk_water:1'), treasure('สมบัติใต้น้ำ', [['ore', 2, 5], ['coconut', 2, 4], ['essence', 1, 1]], 240), slow('คลื่นซัด', 4, 6, 15, 8, 'sk_rain:1')]),
       C('adventurer', 'นักผจญภัย', 'สำรวจ', 20, 'cls_explorer:5', 'ทำได้ทุกอย่างในโลกกว้าง', [pSpeed(25), pLoot(1), pXp(20), pHome()],
         [blink('ตะขอเกี่ยว', 9, 4, 6, 'sk_blink:2'), aoe('แส้ฟาด', 30, 2, 4, 4, 8, 'sk_fan:2'), treasure('ขุดสมบัติ', [['essence', 1, 2], ['ore', 4, 8], ['soup', 1, 1]], 240), buff('หัวใจนักผจญภัย', 'xp', 1.6, 120, 300, 8, 'sk_vigor:1')]),
@@ -304,7 +305,7 @@
         [quarry('ทุบหินใหญ่', 2, 3, 20, 10, 'sk_quarry:1', 3), aoe('ค้อนกระแทก', 25, 2, 0, 5, 8, 'sk_quarry:1'), convert('บดหินเป็นทางเดิน', 'stone', 'path', [1, 8], 10, 3, 'sk_floor:1'), buff('หลังแข็ง', 'def', 0.4, 30, 60, 5, 'sk_wall:1')]),
       C('demolisher', 'นักระเบิด', 'ทรัพยากร', 6, 'cls_miner:4', 'บูม! ทุกอย่างหายไปในพริบตา', [pStone(2), pOre(15), pSkill(20)],
         [quarry('ระเบิดใหญ่', 3, 5, 40, 20, 'sk_quarry:3', 1), aoe('ไดนาไมต์', 40, 2.5, 6, 6, 12, 'sk_fire:4'), push('แรงระเบิด', 4, 5, 12, 8), stun('ระเบิดสั่น', 3, 5, 3, 20, 10, 'sk_snipe:4')]),
-      C('scavenger', 'คนหาของเก่า', 'ทรัพยากร', 8, 'cls_miner:5', 'ของทุกชิ้นมีค่า', [pGather(2), pLoot(2), pSell(10)],
+      C('scavenger', 'คนหาของเก่า', 'ทรัพยากร', 8, 'cls_miner:5', 'ของทุกชิ้นมีค่า', [pGather(2), pLoot(2), pFish(30)],
         [gather('คุ้ยหา', 5, 10, 6, 'sk_reap:5'), treasure('ของเก่า', [['ore', 1, 3], ['wood', 5, 10], ['stone', 5, 10]], 180), find('หาพุ่มเบอร์รี่', 'bush', 10), buff('ตาไว', 'loot', 2, 60, 180, 6, 'sk_snipe:5')]),
       C('mushroomer', 'คนเก็บเห็ด', 'ทรัพยากร', 10, 'cls_miner:2', 'ป่าเป็นตู้กับข้าว', [pGather(3), pFood(15), pHunger(15)],
         [gather('เก็บเห็ดทั้งป่า', 6, 10, 6, 'sk_reap:2'), poison('เห็ดพิษ', 6, 6, 5, 8, 6), heal('ซุปเห็ด', { hunger: 30, hp: 10 }, 90, 0, 'sk_vigor:2'), find('ดมหาเห็ด', 'bush', 10)]),

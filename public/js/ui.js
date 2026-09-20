@@ -34,11 +34,11 @@ window.UI = (() => {
   function panelOpen() { return !$('#modal').classList.contains('hidden'); }
   function currentPanel() { const p = $$('.modal-panel').find(p => !p.classList.contains('hidden')); return panelOpen() && p ? p.id : null; }
   function toggle(id) { if (currentPanel() === id) closePanels(); else openPanel(id); }
-  function refreshPanel(id) { const f = { pInv: refreshInv, pCraft: refreshCraft, pCook: refreshCook, pShop: refreshShop, pFriends: refreshFriends, pMap: drawBigMap, pEra: refreshEra, pClass: refreshClass }[id]; if (f) f(); }
+  function refreshPanel(id) { const f = { pInv: refreshInv, pCraft: refreshCraft, pCook: refreshCook, pShop: refreshShop, pFriends: refreshFriends, pMap: drawBigMap, pEra: refreshEra, pClass: refreshClass, pFish: refreshFishdex }[id]; if (f) f(); }
   function hotkey(k, e) {
     switch (k) {
       case 'i': toggle('pInv'); break; case 'k': toggle('pCraft'); break; case 'b': toggle('pShop'); break; case 'j': toggle('pClass'); break;
-      case 'm': toggle('pMap'); break; case 'f': toggle('pFriends'); break; case 'h': Net.send({ t: 'home' }); break; case 'l': toggle('pEra'); break;
+      case 'm': toggle('pMap'); break; case 'f': toggle('pFriends'); break; case 'h': Net.send({ t: 'home' }); break; case 'l': toggle('pEra'); break; case 'n': toggle('pFish'); break;
       case 'escape': if (panelOpen()) closePanels(); else openPanel('pMenu'); break;
       case 'enter': $('#worldChat').classList.remove('collapsed'); $('#worldChat').classList.add('expanded'); $('#wcInput').focus(); e.preventDefault(); break;
     }
@@ -88,12 +88,12 @@ window.UI = (() => {
     const sel = G().sel;
     // ---- zone 1: tools (auto from inventory) ----
     const zt = document.createElement('div'); zt.className = 'zone';
-    zt.innerHTML = `<div class="zl"><img class="ui-ic zl-ic" src="${SP.iconURL('hammer')}" alt=""> เครื่องมือ <small>6-0 - · Tab</small></div>`;
+    zt.innerHTML = `<div class="zl"><img class="ui-ic zl-ic" src="${SP.iconURL('hammer')}" alt=""> เครื่องมือ <small>6-0 - = · Tab</small></div>`;
     const rt = document.createElement('div'); rt.className = 'slots';
     D.TOOL_KINDS.forEach((k, i) => {
       const id = D.bestTool(me.inv, k.kind);
       const sl = document.createElement('div'); sl.className = 'slot tool' + (sel.zone === 'tool' && sel.i === i ? ' active' : '') + (id ? '' : ' empty');
-      sl.innerHTML = (id ? icon(id) : `<span class="ph" style="background-image:url(${SP.iconURL(k.tiers[k.tiers.length - 1])})"></span>`) + `<span class="k">${i === 4 ? 0 : i === 5 ? '-' : i + 6}</span>` + (id && (D.ITEMS[id].dmg || D.ITEMS[id].melee) ? '<span class="tier">★</span>' : '');
+      sl.innerHTML = (id ? icon(id) : `<span class="ph" style="background-image:url(${SP.iconURL(k.tiers[k.tiers.length - 1])})"></span>`) + `<span class="k">${i === 4 ? 0 : i === 5 ? '-' : i === 6 ? '=' : i + 6}</span>` + (id && (D.ITEMS[id].dmg || D.ITEMS[id].melee) ? '<span class="tier">★</span>' : '');
       sl.title = id ? `${D.ITEMS[id].th}${D.ITEMS[id].dmg ? ' (แรง +' + D.ITEMS[id].dmg + ')' : ''}${D.ITEMS[id].melee ? ' (โจมตี ' + D.ITEMS[id].melee + ')' : ''}` : `ยังไม่มี${k.th} (คราฟต์หรือซื้อที่ร้าน)`;
       sl.onclick = () => Game.selectTool(i);
       rt.appendChild(sl);
@@ -478,6 +478,26 @@ window.UI = (() => {
   }
   function hideDialog() { $('#dialog').classList.add('hidden'); }
 
+  // ---------- fishdex ----------
+  let fishFilter = 'all', fishQ = '';
+  function refreshFishdex() {
+    const me = G().me; const dex = me.fishdex || {}; const box = $('#fishList'); box.innerHTML = '';
+    const caught = D.FISH_LIST.filter(f => dex[f.id]).length;
+    $('#fishCount').textContent = `· จับได้แล้ว ${caught}/${D.FISH_LIST.length} ชนิด`;
+    const total = Object.values(dex).reduce((a, r) => a + r.n, 0);
+    $('#fishHint').textContent = `ตกปลา: เลือกเบ็ด (ปุ่ม =) แล้วคลิกบนน้ำในระยะ 4 ช่อง รอจนขึ้นเครื่องหมาย ! แล้วคลิกหรือกด Space ทันที · ใช้เหยื่อ (คราฟต์จากเบอร์รี่+เห็ด) ปลากินไวและได้ปลาหายากขึ้น · น้ำตื้น/แม่น้ำ = ปลาน้ำจืด · ทะเลลึก = ปลาทะเล · บางชนิดออกเฉพาะกลางคืน · เบ็ดดีกว่า = โอกาสหายากมากขึ้น · จับทั้งหมด ${total} ตัว`;
+    const tabs = $('#fishTabs'); tabs.innerHTML = '';
+    for (const [id, th] of [['all', 'ทั้งหมด'], ['river', 'น้ำจืด'], ['sea', 'ทะเล'], ['any', 'พิเศษ'], ['night', 'กลางคืน'], ['caught', 'จับแล้ว'], ['rare', 'หายาก+']]) { const b = document.createElement('button'); b.className = 'tab' + (fishFilter === id ? ' active' : ''); b.textContent = th; b.onclick = () => { fishFilter = id; refreshFishdex(); }; tabs.appendChild(b); }
+    const q = fishQ.toLowerCase();
+    const list = D.FISH_LIST.filter(f => (fishFilter === 'all' || (fishFilter === 'night' ? f.night : fishFilter === 'caught' ? dex[f.id] : fishFilter === 'rare' ? f.rarity >= 3 : f.habitat === fishFilter)) && (!q || f.th.includes(q))).sort((a, b) => a.rarity - b.rarity || a.lv - b.lv);
+    for (const f of list) {
+      const r = dex[f.id]; const div = document.createElement('div'); div.className = 'fish' + (r ? ' got' : '');
+      div.innerHTML = `<img src="${SP.iconURL(f.id)}" alt=""><div class="fb"><b>${r ? f.th : '???'}</b><span class="rar" style="color:${D.RARITY_COLOR[f.rarity]}">${D.RARITY_TH[f.rarity]}</span><small>${{ river: 'น้ำจืด', sea: 'ทะเล', any: 'ทุกแหล่งน้ำ' }[f.habitat]}${f.night ? ' · กลางคืน' : ''} · ${f.minCm}-${f.maxCm} ซม. · ขาย ${f.price}${f.lv > 1 ? ' · Lv ' + f.lv : ''}</small>${r ? `<small class="rec">จับได้ ${r.n} ตัว · สถิติ ${r.max} ซม.</small>` : ''}</div>`;
+      box.appendChild(div);
+    }
+    if (!list.length) box.innerHTML = '<div class="muted">ไม่พบ</div>';
+  }
+
   // ---------- era panel ----------
   const CAT_TH = { mat: 'วัสดุ', build: 'พื้น ผนัง ประตู แสงไฟ', furn: 'เฟอร์นิเจอร์และของตกแต่ง', tool: 'เครื่องมือ', weapon: 'อาวุธ', food: 'อาหาร', vehicle: 'พาหนะ', seed: 'เมล็ด' };
   function refreshEra() {
@@ -519,6 +539,7 @@ window.UI = (() => {
     if (fields.includes('home')) toast('บ้านของคุณอยู่ที่นี่แล้ว กด H เพื่อกลับบ้าน', 'info', 2800, 'home');
     if (fields.includes('xp') || fields.includes('level')) { refreshLevel(); if (fields.includes('level') && currentPanel() === 'pClass') refreshClass(); }
     if (fields.includes('vehicle')) { refreshVehicle(); if (currentPanel() === 'pInv') refreshInv(); }
+    if (fields.includes('fishdex') && currentPanel() === 'pFish') refreshFishdex();
     if (fields.includes('cls')) { refreshSkills(); if (currentPanel() === 'pClass') refreshClass(); if (currentPanel() === 'pCraft') refreshCraft(); }
     if (fields.includes('needs')) refreshSkills();
     if (fields.includes('look') || fields.includes('name')) refreshProfile();
@@ -540,6 +561,8 @@ window.UI = (() => {
     $('#craftLocked').onchange = () => { craftShowLocked = $('#craftLocked').checked; refreshCraft(); };
     $('#craftCan').onchange = () => { craftCanOnly = $('#craftCan').checked; refreshCraft(); };
     $('#cookQ').oninput = () => { cookQ = $('#cookQ').value.trim(); refreshCook(); };
+    $('#fishQ').oninput = () => { fishQ = $('#fishQ').value.trim(); refreshFishdex(); };
+    $('#btnFish').onclick = () => toggle('pFish');
     $('#cookLocked').onchange = () => { cookShowLocked = $('#cookLocked').checked; refreshCook(); };
     $('#shopTabs').onclick = (e) => { const b = e.target.closest('.tab'); if (!b) return; shopMode = b.dataset.mode; $$('#shopTabs .tab').forEach(t => t.classList.toggle('active', t === b)); refreshShop(); };
     $('#friendSearch').onsubmit = (e) => { e.preventDefault(); const q = $('#friendQ').value.trim(); if (q) Net.send({ t: 'search_user', q }); };

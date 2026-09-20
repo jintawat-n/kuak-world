@@ -17,7 +17,7 @@ window.Game = (() => {
     hits: new Map(), particles: [], floats: [], bubbles: new Map(), anim: null, tags: [],
     keys: {}, running: false, lastMoveSend: 0, lastSent: null, joy: { dx: 0, dy: 0 }, friendsPos: [],
     ox: 0, oy: 0, lastChunkReq: 0, lastMini: 0, lastUse: 0, onlineN: 1,
-    npcs: new Map(), mobs: new Map(), fx: [], hurtAt: 0, cds: {}, targeting: null, mobHits: new Map(), buffs: {},
+    npcs: new Map(), mobs: new Map(), fx: [], hurtAt: 0, cds: {}, targeting: null, mobHits: new Map(), buffs: {}, fishing: null,
   };
 
   // ---------- helpers ----------
@@ -115,6 +115,7 @@ window.Game = (() => {
     if (len > 0.01) {
       dx /= Math.max(1, len); dy /= Math.max(1, len);
       if (st.state) { st.state = null; Net.send({ t: 'wake' }); }
+      if (st.fishing) st.fishing = null;
     }
     let speed = st.run ? 6.6 : 4.3;
     const n = st.me.needs; if (n.hunger < 8 || n.energy < 8) speed *= 0.55;
@@ -156,6 +157,7 @@ window.Game = (() => {
     if (!st.me) return;
     const now = performance.now();
     if (st.targeting) { const sk = st.targeting; st.targeting = null; UI.refreshSkills(); castSkill(sk, tx, ty); return; }
+    if (st.fishing) { Net.send({ t: 'reel' }); return; }
     if (now - st.lastUse < 220) return; st.lastUse = now;
     const npc = npcAt(tx, ty);
     if (npc) { if (Math.max(Math.abs(st.pos.x - npc.x), Math.abs(st.pos.y - npc.y)) > 3.5) { UI.toast('เดินเข้าไปใกล้ ' + npc.name + ' ก่อน', 'error'); return; } Net.send({ t: 'talk', npc: npc.id }); return; }
@@ -279,6 +281,13 @@ window.Game = (() => {
     // particles
     for (const p of st.particles) { ctx.globalAlpha = Math.min(1, p.life * 2); ctx.fillStyle = p.color; ctx.fillRect(ox + p.x * TILE - dpr, oy + p.y * TILE - dpr, 3 * dpr, 3 * dpr); }
     ctx.globalAlpha = 1;
+    if (st.fishing && st.fishing.state !== 'catch') {
+      const f = st.fishing; const bob = Math.sin(now / 250) * 1.5 * dpr; const bx = ox + (f.x + 0.5) * TILE, by = oy + (f.y + 0.5) * TILE + bob;
+      // line from player
+      ctx.strokeStyle = 'rgba(255,255,255,.8)'; ctx.lineWidth = 1 * dpr; ctx.beginPath(); ctx.moveTo(ox + st.pos.x * TILE, oy + (st.pos.y - 1.1) * TILE); ctx.lineTo(bx, by - 4 * dpr); ctx.stroke();
+      ctx.drawImage(SP.bobber(f.state === 'bite'), bx - TILE / 2, by - TILE / 2, TILE, TILE);
+      if (f.state === 'bite') { const s2 = 1 + Math.sin(now / 80) * 0.15; ctx.drawImage(SP.uiIconCanvas('warn'), bx - 10 * dpr * s2, by - 30 * dpr, 20 * dpr * s2, 20 * dpr * s2); if (Math.floor(now / 100) % 2 === 0) burst(f.x, f.y, '#7cc4f0', 1, 0.5, 1.5); }
+    }
     drawFx(ox, oy, now);
     // lighting
     drawLighting(now, ox, oy, x0, y0, x1, y1);
@@ -333,6 +342,8 @@ window.Game = (() => {
         const r = f.r * TILE; ctx.globalAlpha = (1 - t) * 0.35; ctx.fillStyle = f.kind === 'rain' ? '#4b8fe0' : '#7ee787'; ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI * 2); ctx.fill();
       } else if (f.kind === 'blink' || f.kind === 'buff') {
         const r = (0.2 + t * 0.9) * TILE; ctx.globalAlpha = (1 - t); ctx.strokeStyle = f.kind === 'blink' ? '#c084fc' : '#ffe08a'; ctx.lineWidth = 2 * dpr; ctx.beginPath(); ctx.arc(sx, sy - TILE * 0.5, r, 0, Math.PI * 2); ctx.stroke();
+      } else if (f.kind === 'splash') {
+        const r = (0.2 + t * 1.2) * TILE; ctx.globalAlpha = (1 - t) * 0.9; ctx.strokeStyle = '#bfe3ff'; ctx.lineWidth = 2 * dpr; ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI * 2); ctx.stroke();
       } else if (f.kind === 'ping') {
         const r = (0.5 + (now / 300 % 1)) * TILE; ctx.globalAlpha = 0.8 - (now / 300 % 1) * 0.6; ctx.strokeStyle = '#ffe08a'; ctx.lineWidth = 3 * dpr; ctx.beginPath(); ctx.arc(ox + (f.x + 0.5) * TILE, oy + (f.y + 0.5) * TILE, r, 0, Math.PI * 2); ctx.stroke();
         // off-screen arrow toward the target
@@ -440,6 +451,7 @@ window.Game = (() => {
     const sx = ox + x * TILE, sy = oy + y * TILE;
     const id = selectedId(); const item = D.ITEMS[id];
     let valid = null;
+    if (item && item.tool === 'rod') { const t = tileAt(x, y); valid = (t === 0 || t === 12) && Math.max(Math.abs(st.pos.x - (x + 0.5)), Math.abs(st.pos.y - (y + 0.5))) <= 4.5; }
     if (item && (item.obj || item.tile != null || item.crop || item.plant)) {
       const t = tileAt(x, y), td = D.TILES[t] || {}, o = objAt(x, y), own = ownerAt(x, y);
       if (item.obj) valid = !o && td.walk && !td.soil;
@@ -533,9 +545,10 @@ window.Game = (() => {
       else if (k >= '6' && k <= '9') selectTool(+k - 6);
       else if (k === '0') selectTool(4);
       else if (k === '-') selectTool(5);
+      else if (k === '=') selectTool(6);
       else if (k === 'tab') { if (st.sel.zone === 'tool') selectTool(st.sel.i + 1); else selectTool(0); e.preventDefault(); }
       else if (k === 'e') { const f = facing(); useAt(f.x, f.y, 'hand'); }
-      else if (k === ' ') { const f = facing(); useAt(f.x, f.y, selectedId()); e.preventDefault(); }
+      else if (k === ' ') { e.preventDefault(); if (st.fishing) { Net.send({ t: 'reel' }); return; } const f = facing(); useAt(f.x, f.y, selectedId()); }
       else if (D.SKILL_KEYS.includes(k)) triggerSkill(D.SKILL_KEYS.indexOf(k), false);
       else if (k === 'g') { if (st.me && st.me.vehicle) Net.send({ t: 'mount' }); else UI.toast('ยังไม่ได้ขึ้นพาหนะ: เปิดกระเป๋า (I) แล้วกด "ขี่" ที่พาหนะ', 'info'); }
       else if (k === 'q') cycle(-1);
@@ -613,6 +626,13 @@ window.Game = (() => {
     Net.on('skill_ok', (m) => { st.cds[m.id] = m.until; UI.refreshSkills(); });
     Net.on('ping', (m) => { if (m.at) st.fx.push({ kind: 'ping', x: m.at.x, y: m.at.y, life: 6, max: 6 }); });
     Net.on('buffs', (m) => { st.buffs = m.b || {}; });
+    Net.on('fish_state', (m) => {
+      if (!m.state || m.state === 'miss') { st.fishing = null; if (m.state === 'miss') burst(st.fishing ? st.fishing.x : Math.floor(st.pos.x), st.fishing ? st.fishing.y : Math.floor(st.pos.y), '#7cc4f0', 6, 0.6, 2); return; }
+      if (m.state === 'catch') { const f = D.FISH[m.fish]; burst(m.x, m.y, ['#7cc4f0', f.color], 14, 0.8, 3); float(`${f.th} ${m.size} ซม.`, D.RARITY_COLOR[f.rarity] || '#fff'); st.fishing = null; st.anim = { a: 'rod', until: performance.now() + 500, icon: 'rod_wood' }; return; }
+      st.fishing = { x: m.x, y: m.y, state: m.state, since: performance.now() };
+      if (m.state === 'bite') { float('!', '#ffe08a'); }
+    });
+    Net.on('fx', (m) => { if (m.kind === 'splash') for (let i = 0; i < 8; i++) st.particles.push({ x: m.x + 0.5 + (Math.random() - 0.5) * 0.6, y: m.y + 0.5, vx: (Math.random() - 0.5) * 2, vy: -2 - Math.random() * 2, life: 0.5 + Math.random() * 0.3, color: '#bfe3ff' }); });
     Net.on('warp', (m) => { st.pos.x = m.x; st.pos.y = m.y; st.cam.x = m.x; st.cam.y = m.y; st.lastSent = null; });
     Net.on('me', (m) => { if (!st.me) return; Object.assign(st.me, m.patch); if ('state' in m.patch) st.state = m.patch.state; UI.onMe(Object.keys(m.patch)); });
     Net.on('time', (m) => { st.time = m.time; st.timeAt = performance.now(); st.onlineN = m.online; });
@@ -625,7 +645,7 @@ window.Game = (() => {
     st.me = init.me; st.id = init.me.id;
     st.pos = { x: init.me.x, y: init.me.y }; st.cam = { x: init.me.x, y: init.me.y };
     st.time = init.world.time; st.timeAt = performance.now();
-    st.chunks.clear(); st.requested.clear(); st.players.clear(); st.npcs.clear(); st.mobs.clear(); st.fx = []; st.cds = {}; st.targeting = null; st.buffs = {}; st.lastSent = null; st.state = null;
+    st.chunks.clear(); st.requested.clear(); st.players.clear(); st.npcs.clear(); st.mobs.clear(); st.fx = []; st.cds = {}; st.targeting = null; st.buffs = {}; st.fishing = null; st.lastSent = null; st.state = null;
     resize();
     if (!st.running) { st.running = true; last = performance.now(); requestAnimationFrame(loop); }
   }

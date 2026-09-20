@@ -423,12 +423,29 @@
     chili: ['................', '................', '.........LL.....', '........LL......', '.......rr.......', '......rrr.......', '.....rrrr.......', '.....rrr........', '....rrrr........', '....rrr.........', '...rrr..........', '...rr...........', '..rr............', '................', '................', '................'],
     rice: ['................', '................', '................', '................', '....hhhhhhhh....', '...hhhhhhhhhh...', '..hhhhhhhhhhhh..', '..eEEEEEEEEEEe..', '..eEEEEEEEEEEe..', '...eEEEEEEEEe...', '....eeeeeeee....', '................', '................', '................', '................', '................'],
   };
+  function fishIcon(fid) {
+    const f = D.FISH[fid]; const c = mk(16, 16), x = ctxOf(c);
+    const col = f.color, col2 = f.color2, dark = shade(col, -0.35);
+    const shp = f.shape;
+    if (shp === 'round') { R(x, 4, 4, 8, 8, col); R(x, 5, 3, 6, 1, col); R(x, 5, 12, 6, 1, col); R(x, 3, 6, 1, 4, col); R(x, 12, 6, 1, 4, col); R(x, 6, 6, 4, 3, col2); R(x, 1, 5, 2, 6, dark); P(x, 2, 7, col); P(x, 10, 5, '#fff'); P(x, 11, 5, '#111'); }
+    else if (shp === 'long') { R(x, 2, 7, 12, 3, col); R(x, 4, 6, 8, 1, col2); R(x, 4, 10, 8, 1, dark); R(x, 0, 6, 2, 5, dark); P(x, 1, 8, col); P(x, 12, 7, '#111'); R(x, 6, 5, 3, 1, col2); }
+    else if (shp === 'flat') { R(x, 5, 3, 6, 10, col); R(x, 4, 5, 8, 6, col); R(x, 6, 5, 4, 6, col2); R(x, 12, 6, 2, 4, dark); R(x, 3, 1, 2, 3, dark); R(x, 3, 12, 2, 3, dark); P(x, 6, 6, '#fff'); P(x, 6, 7, '#111'); }
+    else if (shp === 'big') { R(x, 2, 5, 11, 7, col); R(x, 4, 4, 7, 1, col); R(x, 4, 12, 7, 1, dark); R(x, 5, 7, 6, 2, col2); R(x, 0, 4, 2, 9, dark); P(x, 1, 8, col); R(x, 6, 2, 3, 2, dark); P(x, 11, 6, '#fff'); P(x, 12, 6, '#111'); }
+    else { R(x, 3, 6, 10, 5, col); R(x, 5, 5, 6, 1, col); R(x, 5, 11, 6, 1, dark); R(x, 6, 7, 4, 2, col2); R(x, 1, 5, 2, 7, dark); P(x, 2, 8, col); R(x, 7, 4, 2, 1, dark); P(x, 11, 7, '#fff'); P(x, 12, 7, '#111'); }
+    if (f.rarity >= 4) { P(x, 2, 2, '#ffe08a'); P(x, 13, 13, '#ffe08a'); P(x, 13, 2, '#ffffff'); }
+    return c;
+  }
   function itemIcon(id) {
     const key = `i_${id}`;
     if (cache.has(key)) return cache.get(key);
     const it = D.ITEMS[id] || {};
     let c;
-    if (it.cat === 'mat' && it.color) { // ingot / bundle
+    if (it.fish) {
+      c = fishIcon(it.fish);
+    } else if (it.tool === 'rod') {
+      c = mk(16, 16); const x = ctxOf(c); const col = { 1: '#8b5a2b', 2: '#c8863c', 3: '#6c7a89', 4: '#b08d57', 5: '#1b1b1b' }[it.tier] || '#8b5a2b';
+      for (let i = 0; i < 11; i++) P(x, 2 + i, 13 - i, col); for (let i = 0; i < 11; i++) P(x, 3 + i, 13 - i, shade(col, -0.3)); R(x, 13, 2, 1, 8, '#e0e0e0'); P(x, 12, 10, '#e0e0e0'); P(x, 12, 11, '#c0392b'); P(x, 13, 11, '#c0392b'); P(x, 12, 12, '#8a8a8a');
+    } else if (it.cat === 'mat' && it.color) { // ingot / bundle
       c = mk(16, 16); const x = ctxOf(c); const col = it.color; R(x, 3, 6, 10, 6, col); R(x, 3, 6, 10, 1, shade(col, 0.3)); R(x, 3, 11, 10, 1, shade(col, -0.35)); R(x, 12, 6, 1, 6, shade(col, -0.35)); R(x, 2, 9, 12, 4, shade(col, -0.15)); R(x, 2, 12, 12, 1, shade(col, -0.4));
     } else if (it.cat === 'weapon') {
       c = mk(16, 16); const x = ctxOf(c); const gun = /gun|rifle|revolver|laser|taser|smg|rail|shot/.test(id) || id === 'sling' || id === 'bow' || id === 'crossbow';
@@ -550,6 +567,7 @@
     era_medieval: ['................', '.gg.gg.gg.gg.gg.', '.gggggggggggggg.', '.gggggggggggggg.', '..gggggggggggg..', '..ggggGGGGgggg..', '..ggggGGGGgggg..', '..gggggggggggg..', '..gggggggggggg..', '..ggggGGGGgggg..', '..ggggGGGGgggg..', '..ggggGGGGgggg..', '.gggggggggggggg.', '................', '................', '................'],
     era_industrial: ['................', '..gg............', '..gg............', '..gg.....ss.....', '..gg....ssss....', '..gggggggggggg..', '..gggggggggggg..', '..gggggggggggg..', '..gGGggGGggGGg..', '..gGGggGGggGGg..', '..gggggggggggg..', '..gggggggggggg..', '..gggggggggggg..', '................', '................', '................'],
     era_modern: ['................', '.....uu.........', '.....uu...gg....', '..gg.uu...gg....', '..gg.uu.uugg....', '..gguuuuuugg....', '..ggu.uuu.gg....', '..gguuuuuugguu..', '..ggu.uuu.gguu..', '..gguuuuuugguu..', '..ggu.uuu.gguu..', '..gguuuuuugguu..', '..gguuuuuugguu..', '................', '................', '................'],
+    fish: ['................', '................', '................', '.....uuuuuu.....', '...uuuuuuuuuu...', '..uuuuwuuuuuuu..', '.Uuuuuzuuuuuuuu.', 'UUuuuuuuuuuuuUU.', '.UuuuuuuuuuuuUU.', '..uuuuuuuuuuuu..', '...uuuuuuuuuu...', '.....uuuuuu.....', '................', '................', '................', '................'],
     xp: ['................', '................', '.......aa.......', '......aaaa......', '.....aaaaaa.....', '....aaaaaaaa....', '...aaaaaaaaaa...', '.....aaaaaa.....', '.....aaaaaa.....', '.....aaaaaa.....', '.....aaaaaa.....', '.....aaaaaa.....', '................', '................', '................', '................'],
   };
   // recolor saturated pixels toward a target hue/sat (keeps lightness) - used for vehicle variants
@@ -595,5 +613,7 @@
     const u = uiIconCanvas(name).toDataURL(); cache.set(key, u); return u;
   }
 
-  window.Sprites = { uiIcon: uiIconURL, uiIconCanvas, mob: mobSprite, tile: tileSprite, obj: objSprite, crop: cropSprite, char: charSprite, vehicle: vehicleSprite, item: itemIcon, iconURL: iconDataURL, hash, shade, mk, ctxOf };
+  const BOBBER = ['................', '................', '................', '................', '................', '.......rr.......', '......rrrr......', '......rrrr......', '......wwww......', '......wwww......', '.......ww.......', '................', '................', '................', '................', '................'];
+  function bobberSprite(bite) { const key = 'bobber' + (bite ? 1 : 0); if (cache.has(key)) return cache.get(key); const c = mk(16, 16), x = ctxOf(c); drawMap(x, BOBBER, { r: '#e63946', w: '#ffffff' }, 16, 16); if (bite) { R(x, 5, 3, 6, 1, '#7cc4f0'); R(x, 4, 11, 8, 1, '#7cc4f0'); } cache.set(key, c); return c; }
+  window.Sprites = { uiIcon: uiIconURL, uiIconCanvas, mob: mobSprite, bobber: bobberSprite, fishIcon, tile: tileSprite, obj: objSprite, crop: cropSprite, char: charSprite, vehicle: vehicleSprite, item: itemIcon, iconURL: iconDataURL, hash, shade, mk, ctxOf };
 })();
