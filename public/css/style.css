@@ -225,7 +225,12 @@ h3 .ui-ic { width: 20px; height: 20px; vertical-align: -4px; margin-right: 2px; 
 .menu-list { display: flex; flex-direction: column; gap: 8px; }
 .menu-list .btn { width: 100%; text-align: left; }
 .help p { font-size: 13px; margin: 6px 0; line-height: 1.5; }
-#bigmap { width: 100%; max-height: 70vh; aspect-ratio: 1; background: #123; border: 2px solid var(--wood); border-radius: 6px; }
+#pMap { width: 700px; }
+.map-tools { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; flex-wrap: wrap; }
+.map-tools .btn { min-width: 34px; }
+.map-wrap { position: relative; }
+#bigmap { width: 100%; max-height: 66vh; aspect-ratio: 1; background: #123; border: 2px solid var(--wood); border-radius: 6px; cursor: grab; touch-action: none; display: block; }
+#bigmap.drag { cursor: grabbing; }
 .sign-text { white-space: pre-wrap; background: #fff; padding: 12px; border-radius: 8px; border: 2px solid var(--wood); min-height: 60px; margin-bottom: 8px; }
 #signEdit textarea { width: 100%; margin-bottom: 8px; }
 .fitem { display: flex; align-items: center; gap: 8px; padding: 6px; border-bottom: 1px solid var(--cream2); }

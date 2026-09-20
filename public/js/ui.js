@@ -320,8 +320,41 @@ window.UI = (() => {
   function sysMsg(text, scope = 'local') { addWorld({ sys: true, text, scope, ts: Date.now() }); }
 
   // ---------- big map ----------
+  // zoom/pan state: scale = canvas px per world tile * (canvas/2048) ... we keep view as {z, cx, cy} in world coords
+  const mapView = { z: 1, cx: D.WORLD_SIZE / 2, cy: D.WORLD_SIZE / 2, bound: false };
+  const MAP_MINI = { 0: '#2f6fc4', 12: '#5aaee6', 1: '#e9d79f', 2: '#78c850', 3: '#4e9e3c', 4: '#a6743f', 5: '#8f8f93', 6: '#eef3f9', 7: '#7b5230', 8: '#4c321b', 9: '#c4914f', 10: '#b3b3ba', 11: '#cdb98f', 13: '#ececec', 14: '#c94a4a' };
+  function mapPx() { const c = $('#bigmap'); return c.width / D.WORLD_SIZE * mapView.z; } // canvas px per tile
+  function mapToWorld(px, py) { const c = $('#bigmap'); const k = mapPx(); return { x: mapView.cx + (px - c.width / 2) / k, y: mapView.cy + (py - c.height / 2) / k }; }
+  function clampView() { const c = $('#bigmap'); const k = mapPx(); const half = c.width / 2 / k; mapView.cx = Math.max(half, Math.min(D.WORLD_SIZE - half, mapView.cx)); mapView.cy = Math.max(half, Math.min(D.WORLD_SIZE - half, mapView.cy)); if (mapView.z <= 1) { mapView.cx = D.WORLD_SIZE / 2; mapView.cy = D.WORLD_SIZE / 2; } }
+  function setZoom(z, ax, ay) { // ax, ay: canvas anchor point to keep fixed
+    const c = $('#bigmap'); const before = ax != null ? mapToWorld(ax, ay) : null;
+    mapView.z = Math.max(1, Math.min(64, z));
+    if (before) { const k = mapPx(); mapView.cx = before.x - (ax - c.width / 2) / k; mapView.cy = before.y - (ay - c.height / 2) / k; }
+    clampView(); drawBigMap();
+  }
+  function bindMap() {
+    const c = $('#bigmap'); mapView.bound = true;
+    const pos = (ev) => { const r = c.getBoundingClientRect(); return { x: (ev.clientX - r.left) * c.width / r.width, y: (ev.clientY - r.top) * c.height / r.height }; };
+    c.addEventListener('wheel', (e) => { e.preventDefault(); const p = pos(e); setZoom(mapView.z * (e.deltaY < 0 ? 1.25 : 0.8), p.x, p.y); }, { passive: false });
+    let drag = null;
+    c.addEventListener('pointerdown', (e) => { drag = { x: e.clientX, y: e.clientY, cx: mapView.cx, cy: mapView.cy, moved: false }; c.setPointerCapture(e.pointerId); c.classList.add('drag'); });
+    c.addEventListener('pointermove', (e) => {
+      const r = c.getBoundingClientRect();
+      if (drag) { const k = mapPx() * r.width / c.width; const dx = e.clientX - drag.x, dy = e.clientY - drag.y; if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true; mapView.cx = drag.cx - dx / k; mapView.cy = drag.cy - dy / k; clampView(); drawBigMap(); }
+      const p = pos(e); const w = mapToWorld(p.x, p.y); const tt = Game.tileAt(Math.floor(w.x), Math.floor(w.y)); const td = D.TILES[tt];
+      $('#mapCoord').textContent = `(${Math.floor(w.x)}, ${Math.floor(w.y)})${td ? ' ' + td.th : ''} · ห่างจากคุณ ${Math.round(Math.hypot(w.x - G().pos.x, w.y - G().pos.y))} ช่อง`;
+    });
+    const up = () => { drag = null; c.classList.remove('drag'); };
+    c.addEventListener('pointerup', up); c.addEventListener('pointercancel', up);
+    c.addEventListener('dblclick', (e) => { const p = pos(e); setZoom(mapView.z * 2, p.x, p.y); });
+    $('#mapZoomIn').onclick = () => setZoom(mapView.z * 1.5, c.width / 2, c.height / 2);
+    $('#mapZoomOut').onclick = () => setZoom(mapView.z / 1.5, c.width / 2, c.height / 2);
+    $('#mapCenter').onclick = () => { mapView.cx = G().pos.x; mapView.cy = G().pos.y; if (mapView.z < 8) mapView.z = 8; clampView(); drawBigMap(); };
+    $('#mapReset').onclick = () => { mapView.z = 1; clampView(); drawBigMap(); };
+  }
   async function drawBigMap() {
     const c = $('#bigmap'); const x = c.getContext('2d');
+    if (!mapView.bound) bindMap();
     if (!mapCanvas) {
       try {
         const r = await fetch('/api/map'); const m = await r.json();
@@ -333,14 +366,42 @@ window.UI = (() => {
         mx.putImageData(img, 0, 0);
       } catch (e) { return; }
     }
-    x.imageSmoothingEnabled = false; x.drawImage(mapCanvas, 0, 0, c.width, c.height);
-    const k = c.width / D.WORLD_SIZE;
-    const mark = (wx, wy, color, r) => { x.fillStyle = color; x.beginPath(); x.arc(wx * k, wy * k, r, 0, Math.PI * 2); x.fill(); x.strokeStyle = '#000'; x.lineWidth = 1; x.stroke(); };
-    x.font = '16px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
-    x.fillText('★', D.SPAWN.x * k, D.SPAWN.y * k);
-    for (const f of G().friendsPos) mark(f.x, f.y, '#4ade80', 4);
-    if (G().me.home) x.drawImage(SP.uiIconCanvas('home'), G().me.home.x * k - 8, G().me.home.y * k - 8, 16, 16);
-    mark(G().pos.x, G().pos.y, '#ffffff', 5);
+    clampView();
+    const k = mapPx(); const W = c.width, H = c.height;
+    const ox = W / 2 - mapView.cx * k, oy = H / 2 - mapView.cy * k; // canvas = ox + wx*k
+    x.imageSmoothingEnabled = false; x.fillStyle = '#1c2a38'; x.fillRect(0, 0, W, H);
+    x.drawImage(mapCanvas, ox, oy, D.WORLD_SIZE * k, D.WORLD_SIZE * k);
+    // detail overlay from loaded chunks when zoomed in (>= 1px per tile)
+    if (k >= 0.9) {
+      const CH = D.CHUNK; const x0 = Math.floor((0 - ox) / k), y0 = Math.floor((0 - oy) / k), x1 = Math.ceil((W - ox) / k), y1 = Math.ceil((H - oy) / k);
+      for (const ch of G().chunks.values()) {
+        const bx = ch.cx * CH, by = ch.cy * CH; if (bx > x1 || by > y1 || bx + CH < x0 || by + CH < y0) continue;
+        for (let j = 0; j < CH; j++) for (let i = 0; i < CH; i++) {
+          const t = ch.tiles[j * CH + i]; const td = D.TILES[t]; let col = MAP_MINI[t] || (td && td.gen ? td.gen.a : '#f0f');
+          const o = ch.objs[i + ',' + j];
+          if (o) { if (['tree', 'pine', 'palm'].includes(o.t)) col = '#2e6b2a'; else if (o.t === 'rock' || o.t === 'bigrock') col = '#666'; else if (o.t === 'crop') col = '#e0a020'; else if (o.o || o.t === 'shop') col = '#f3dfb5'; else if (o.t === 'bush') col = '#3f8f3a'; }
+          x.fillStyle = col; x.fillRect(ox + (bx + i) * k, oy + (by + j) * k, Math.ceil(k), Math.ceil(k));
+        }
+      }
+      // NPCs + monsters (nearby only, from live state)
+      for (const n of G().npcs.values()) { x.fillStyle = '#ffd166'; x.fillRect(ox + n.x * k - 2, oy + n.y * k - 2, 4, 4); }
+      for (const m of G().mobs.values()) { x.fillStyle = '#ff5c5c'; x.fillRect(ox + m.x * k - 2, oy + m.y * k - 2, 4, 4); }
+      // grid every chunk when very zoomed
+      if (k >= 6) { x.strokeStyle = 'rgba(0,0,0,.12)'; x.lineWidth = 1; for (let gx = Math.floor(x0 / CH) * CH; gx <= x1; gx += CH) { x.beginPath(); x.moveTo(ox + gx * k, 0); x.lineTo(ox + gx * k, H); x.stroke(); } for (let gy = Math.floor(y0 / CH) * CH; gy <= y1; gy += CH) { x.beginPath(); x.moveTo(0, oy + gy * k); x.lineTo(W, oy + gy * k); x.stroke(); } }
+    }
+    // safe zone ring (town)
+    x.strokeStyle = 'rgba(255,255,255,.5)'; x.setLineDash([4, 3]); x.lineWidth = 1; x.beginPath(); x.arc(ox + (D.SPAWN.x + 0.5) * k, oy + (D.SPAWN.y + 0.5) * k, 28 * k, 0, Math.PI * 2); x.stroke(); x.setLineDash([]);
+    const mark = (wx, wy, color, r) => { x.fillStyle = color; x.beginPath(); x.arc(ox + wx * k, oy + wy * k, r, 0, Math.PI * 2); x.fill(); x.strokeStyle = '#000'; x.lineWidth = 1; x.stroke(); };
+    x.font = 'bold 18px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.lineWidth = 3; x.strokeStyle = '#000'; x.strokeText('★', ox + (D.SPAWN.x + 0.5) * k, oy + (D.SPAWN.y + 0.5) * k); x.fillStyle = '#ffd166'; x.fillText('★', ox + (D.SPAWN.x + 0.5) * k, oy + (D.SPAWN.y + 0.5) * k);
+    for (const f of G().friendsPos) mark(f.x, f.y, '#4ade80', 5);
+    if (G().me.home) x.drawImage(SP.uiIconCanvas('home'), ox + (G().me.home.x + 0.5) * k - 10, oy + (G().me.home.y + 0.5) * k - 10, 20, 20);
+    mark(G().pos.x, G().pos.y, '#ffffff', 6);
+    // labels
+    x.font = '12px ' + getComputedStyle(document.body).fontFamily; x.lineWidth = 3; x.strokeStyle = 'rgba(0,0,0,.7)'; x.fillStyle = '#fff';
+    const label = (t, wx, wy) => { x.strokeText(t, ox + wx * k, oy + wy * k - 12); x.fillText(t, ox + wx * k, oy + wy * k - 12); };
+    label('เมือง', D.SPAWN.x, D.SPAWN.y); label('คุณ', G().pos.x, G().pos.y);
+    $('#mapZoomText').textContent = 'x' + (mapView.z < 10 ? mapView.z.toFixed(1) : Math.round(mapView.z));
+    $('#mapInfo').textContent = `· โลก ${D.WORLD_SIZE}×${D.WORLD_SIZE} ช่อง · คุณอยู่ (${Math.floor(G().pos.x)}, ${Math.floor(G().pos.y)})`;
   }
 
   // ---------- skills bar ----------

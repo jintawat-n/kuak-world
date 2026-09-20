@@ -206,9 +206,17 @@
     </div>
 
     <div id="pMap" class="panel modal-panel hidden">
-      <div class="ph"><h3><img class="ui-ic" data-ic="map" alt=""> แผนที่โลก</h3><button class="x" data-close>✕</button></div>
-      <canvas id="bigmap" width="512" height="512"></canvas>
-      <div class="hint"><span class="dotc" style="background:#fff"></span> คุณ · <span class="dotc" style="background:#ff8c42"></span> บ้าน · ★ เมือง · <span class="dotc" style="background:#4ade80"></span> เพื่อน</div>
+      <div class="ph"><h3><img class="ui-ic" data-ic="map" alt=""> แผนที่โลก <span class="muted" id="mapInfo"></span></h3><button class="x" data-close>✕</button></div>
+      <div class="map-tools">
+        <button class="btn small" id="mapZoomOut" title="ซูมออก">−</button>
+        <span class="muted" id="mapZoomText">x1</span>
+        <button class="btn small" id="mapZoomIn" title="ซูมเข้า">+</button>
+        <button class="btn small" id="mapCenter">ไปที่ฉัน</button>
+        <button class="btn small" id="mapReset">ทั้งโลก</button>
+        <span class="muted" id="mapCoord"></span>
+      </div>
+      <div class="map-wrap"><canvas id="bigmap" width="640" height="640"></canvas></div>
+      <div class="hint"><span class="dotc" style="background:#fff"></span> คุณ · <span class="dotc" style="background:#ff8c42"></span> บ้าน · ★ เมือง · <span class="dotc" style="background:#4ade80"></span> เพื่อน · ล้อเมาส์ซูม · ลากเพื่อเลื่อน · ดับเบิลคลิกซูมเข้า · ซูมมากจะเห็นต้นไม้/บ้านในพื้นที่ที่โหลดแล้ว</div>
     </div>
 
     <div id="pMenu" class="panel modal-panel hidden">
